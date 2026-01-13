@@ -5,14 +5,14 @@
 See: CLAUDE.md (development contract), docs/ (architecture and phases)
 
 **Core value:** Safety-first autonomous homelab - observation precedes action, inaction preferred to risky action, no automation without explicit rules
-**Current focus:** Phase 0 — Clean Reset
+**Current focus:** Phase 0 — Foundation & Governance (logical foundation, zero runtime)
 
 ## Current Position
 
-Phase: 0 of 7 (Clean Reset)
+Phase: 0 of 7 (Foundation & Governance)
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-01-13 — Project initialized with codebase mapping
+Last activity: 2026-01-13 — Roadmap corrected: logical foundation before hardware
 
 Progress: ░░░░░░░░░░ 0%
 
@@ -66,16 +66,23 @@ None yet.
 ### Blockers/Concerns
 
 **Before Phase 0:**
-- None (infrastructure phase)
+- None (logical foundation, no dependencies)
+
+**Before Phase 0.1:**
+- Hardware must be physically available (can be skipped for early dev)
 
 **Before Phase 1:**
-- Deployment configuration undefined (.env.example files empty)
-- Docker compose files empty
+- Contract schemas must be defined (Phase 0 deliverable)
+- Policy files must be populated (Phase 0 deliverable)
+- Test infrastructure must be established (Phase 0 deliverable)
+- Module READMEs must be complete (Phase 0 deliverable)
 
 **Before Phase 2:**
-- Contract schemas must be defined (prerequisite for all module communication)
-- Policy files must be populated (prerequisite for brain module)
-- Test infrastructure must be established (pytest, Go testing, mocks)
+- Core observability operational (Phase 1 deliverable)
+- Deployment configuration defined (.env.example, docker-compose files)
+
+**Before Phase 3:**
+- SAFE action allowlist validated in production (Phase 1-2 data)
 
 ## Session Continuity
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-ORION is a modular, autonomous homelab system built around safety, SRE principles, and controlled intelligence. The journey progresses from clean infrastructure through observability, then carefully controlled autonomy with human oversight, ultimately building toward multi-model reasoning and edge integration.
+ORION is a modular, autonomous homelab system built around safety, SRE principles, and controlled intelligence. The journey progresses from logical foundation (contracts, policies, tests) through core observability, then infrastructure deployment, followed by carefully controlled autonomy with human oversight, ultimately building toward multi-model reasoning and edge integration.
 
 ## Domain Expertise
 
@@ -16,9 +16,10 @@ None (specialized homelab/SRE system with custom architecture)
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 0: Clean Reset** - Start from known, reproducible state
-- [ ] **Phase 1: orion-hub** - Media, access, storage, dashboards
-- [ ] **Phase 2: orion-core** - Observability, event bus, memory (no actions)
+- [ ] **Phase 0: Foundation & Governance** - Contracts, policies, tests (no runtime)
+- [ ] **Phase 0.1: Hardware Clean Reset (INSERTED)** - Backup, flash OS, hardware prep
+- [ ] **Phase 1: Core Observability** - Event bus, guardian, memory (N0 only)
+- [ ] **Phase 2: Hub Infrastructure** - Media, access, storage, dashboards
 - [ ] **Phase 3: Controlled Autonomy** - Safe actions with allowlists, cooldowns, rollback
 - [ ] **Phase 4: Telegram Approvals** - Risky action approval workflow
 - [ ] **Phase 5: AI Council** - Multi-model reasoning with confidence scoring
@@ -27,54 +28,82 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 ## Phase Details
 
-### Phase 0: Clean Reset
-**Goal**: Start from a known, reproducible state
+### Phase 0: Foundation & Governance
+**Goal**: Establish contracts, policies, and test infrastructure (zero runtime)
 **Depends on**: Nothing (first phase)
-**Research**: Unlikely (infrastructure setup following documented procedures)
+**Research**: Unlikely (internal documentation and schema definition)
 **Plans**: TBD
 
+**Success criteria**: All contracts defined, all policies populated, test infrastructure ready, module READMEs complete
+
 **Objectives:**
-- Backup what matters
-- Flash clean OS
-- No partial reuse
-- Document everything
+- Define all contract schemas (bus/contracts/*.json)
+- Populate policy files (policies/*.yaml: SAFE, RISKY, approvals, cooldowns)
+- Write all module READMEs (purpose, inputs/outputs, invariants, failure modes)
+- Set up test infrastructure (pytest, Go testing, contract validation fixtures)
+- Document environment variables (.env.example files)
+- Zero services running, zero hardware dependency
 
 Plans:
 - [ ] 00-01: TBD during planning
 
-### Phase 1: orion-hub
-**Goal**: Media, access, storage, and dashboards infrastructure
-**Depends on**: Phase 0
-**Research**: Likely (deployment configuration, Tailscale setup)
-**Research topics**: Docker deployment patterns, Tailscale ACL configuration, storage solutions, dashboard frameworks
+### Phase 0.1: Hardware Clean Reset (INSERTED)
+**Goal**: Start hardware from known, reproducible state
+**Depends on**: Phase 0 (logical foundation must exist first)
+**Research**: Unlikely (infrastructure setup following documented procedures)
 **Plans**: TBD
 
-**Success criteria**: Reboot safe + remote access + no open ports
+**Success criteria**: Clean OS installed, documented baseline, ready for Phase 1 deployment
 
 **Objectives:**
-- Media server functionality
-- Remote access via Tailscale
-- Storage management
-- Monitoring dashboards
+- Backup what matters (existing data, configurations)
+- Flash clean OS on all nodes (orion-core, orion-hub)
+- No partial reuse of old configurations
+- Document hardware baseline (versions, network config, storage layout)
+- Verify Tailscale connectivity
+
+**Execution constraint**: Cannot execute until hardware physically available
+
+Plans:
+- [ ] 00.1-01: TBD during planning
+
+### Phase 1: Core Observability
+**Goal**: Event bus, correlation, and memory (N0 observe-only, no autonomous actions)
+**Depends on**: Phase 0.1 (hardware ready) or Phase 0 (can develop without hardware)
+**Research**: Likely (Redis Streams, event-driven architecture, observability stack)
+**Research topics**: Redis Streams patterns, JSON Schema validation runtime, event sourcing, Prometheus/Loki setup, correlation windows
+**Plans**: TBD
+
+**Success criteria**: Events flowing, incidents detected, nothing auto-fixed, full audit trail
+
+**Objectives:**
+- Deploy orion-bus (Go, Redis Streams client with contract validation)
+- Implement orion-guardian (Python, correlation, temporal logic, incident detection)
+- Implement orion-memory (Python, audit trails, post-mortems, embeddings stub)
+- Implement orion-brain (Python, reasoning, N0 observe-only mode)
+- Deploy Redis Streams, Prometheus, Loki
+- All modules validate contracts at runtime
+- Zero autonomous actions (N0 level enforced)
 
 Plans:
 - [ ] 01-01: TBD during planning
 
-### Phase 2: orion-core
-**Goal**: Observability, event bus, and memory (no autonomous actions)
-**Depends on**: Phase 1
-**Research**: Likely (Redis Streams, event-driven architecture, observability stack)
-**Research topics**: Redis Streams patterns, JSON Schema validation, event sourcing, Prometheus/Loki setup
+### Phase 2: Hub Infrastructure
+**Goal**: Media, access, storage, and dashboards
+**Depends on**: Phase 1 (core observability operational)
+**Research**: Likely (deployment configuration, Tailscale setup, media stack)
+**Research topics**: Docker deployment patterns, Tailscale ACL configuration, storage solutions, dashboard frameworks, media server options
 **Plans**: TBD
 
-**Success criteria**: Incidents detected, nothing auto-fixed
+**Success criteria**: Reboot safe + remote access + no open ports + media functional
 
 **Objectives:**
-- Event bus (Redis Streams)
-- Observability infrastructure
-- Memory and audit trails
-- Guardian correlation logic
-- Brain reasoning (observe-only mode, N0)
+- Deploy orion-hub services (media, storage, dashboards)
+- Configure Tailscale zero-trust networking (ACLs, magic DNS)
+- Set up storage management (ZFS, backups, snapshots)
+- Deploy monitoring dashboards (Grafana, alerting)
+- Ensure reboot safety (systemd units, health checks)
+- Verify no exposed ports (Tailscale-only access)
 
 Plans:
 - [ ] 02-01: TBD during planning
@@ -171,13 +200,16 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7
+Phases execute in numeric order: 0 → 0.1 → 1 → 2 → 3 → 4 → 5 → 6 → 7
+
+Note: Phase 0.1 (Hardware Clean Reset) can be skipped during early development if hardware is unavailable. Phase 1 can proceed with local development environment.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 0. Clean Reset | 0/? | Not started | - |
-| 1. orion-hub | 0/? | Not started | - |
-| 2. orion-core | 0/? | Not started | - |
+| 0. Foundation & Governance | 0/? | Not started | - |
+| 0.1. Hardware Clean Reset | 0/? | Not started | - |
+| 1. Core Observability | 0/? | Not started | - |
+| 2. Hub Infrastructure | 0/? | Not started | - |
 | 3. Controlled Autonomy | 0/? | Not started | - |
 | 4. Telegram Approvals | 0/? | Not started | - |
 | 5. AI Council | 0/? | Not started | - |
