@@ -1,0 +1,4 @@
+# System resource watcher dependencies
+
+# System monitoring
+psutil==5.9.8
