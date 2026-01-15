@@ -1,0 +1,93 @@
+# Prometheus Configuration for ORION
+#
+# Metrics collection ONLY - no alerting, no actions
+#
+# This file should be copied to: /mnt/orion-data/config/prometheus/prometheus.yml
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'orion'
+    environment: 'homelab'
+
+# NO alertmanager (observe only)
+# alerting:
+#   alertmanagers: []
+
+# NO alert rules (observe only)
+# rule_files: []
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          instance: 'orion-core'
+
+  # Node Exporter (system metrics)
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          instance: 'orion-core'
+
+  # cAdvisor (container metrics)
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+        labels:
+          instance: 'orion-core'
+
+  # Redis (ORION event bus)
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+        labels:
+          instance: 'orion-core'
+          component: 'bus'
+
+  # ORION services (if they expose metrics)
+  # - job_name: 'orion-guardian'
+  #   static_configs:
+  #     - targets: ['orion-guardian:8000']
+  #       labels:
+  #         instance: 'orion-core'
+  #         component: 'guardian'
+
+# Storage settings
+storage:
+  tsdb:
+    path: /prometheus
+    retention:
+      time: 30d
+      size: 10GB
+
+# Web settings
+# - Enable lifecycle API for config reload
+# - Disable admin API (no remote control)
+web:
+  enable_lifecycle: true
+  enable_admin_api: false
+
+# NOTES:
+#
+# 1. NO ALERTING:
+#    - No alertmanager configured
+#    - No alert rules
+#    - Metrics are observe-only
+#
+# 2. ORION INTEGRATION:
+#    - ORION queries Prometheus API
+#    - ORION emits events based on metrics
+#    - NO direct action from Prometheus
+#
+# 3. RETENTION:
+#    - 30 days time-based
+#    - 10GB size-based
+#    - Stored on HDD
+#
+# 4. RELOAD:
+#    - Config can be reloaded: curl -X POST http://localhost:9090/-/reload
+#    - NO auto-reload

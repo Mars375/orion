@@ -1,0 +1,187 @@
+# ORION Hub - Media Stack
+#
+# Deploys: Jellyfin, Radarr, Sonarr, Prowlarr, qBittorrent
+#
+# CRITICAL: All volumes MUST point to /mnt/orion-data (HDD)
+# NO writes to SD card permitted
+
+version: '3.8'
+
+services:
+  jellyfin:
+    image: jellyfin/jellyfin:latest
+    container_name: jellyfin
+    restart: unless-stopped
+
+    # Network
+    network_mode: host
+
+    # Environment
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+
+    # Volumes (HDD ONLY)
+    volumes:
+      - /mnt/orion-data/config/jellyfin:/config
+      - /mnt/orion-data/media:/media:ro  # Read-only media
+      - /mnt/orion-data/logs/media/jellyfin:/logs
+
+    # Resources
+    mem_limit: 4g
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8096/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  radarr:
+    image: linuxserver/radarr:latest
+    container_name: radarr
+    restart: unless-stopped
+
+    # Environment
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+
+    # Ports
+    ports:
+      - "7878:7878"
+
+    # Volumes (HDD ONLY)
+    volumes:
+      - /mnt/orion-data/config/radarr:/config
+      - /mnt/orion-data/media/movies:/movies
+      - /mnt/orion-data/downloads:/downloads
+      - /mnt/orion-data/logs/media/radarr:/logs
+
+    # Resources
+    mem_limit: 2g
+
+    # Dependencies
+    depends_on:
+      - prowlarr
+      - qbittorrent
+
+  sonarr:
+    image: linuxserver/sonarr:latest
+    container_name: sonarr
+    restart: unless-stopped
+
+    # Environment
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+
+    # Ports
+    ports:
+      - "8989:8989"
+
+    # Volumes (HDD ONLY)
+    volumes:
+      - /mnt/orion-data/config/sonarr:/config
+      - /mnt/orion-data/media/tv:/tv
+      - /mnt/orion-data/downloads:/downloads
+      - /mnt/orion-data/logs/media/sonarr:/logs
+
+    # Resources
+    mem_limit: 2g
+
+    # Dependencies
+    depends_on:
+      - prowlarr
+      - qbittorrent
+
+  prowlarr:
+    image: linuxserver/sonarr:latest
+    container_name: prowlarr
+    restart: unless-stopped
+
+    # Environment
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+
+    # Ports
+    ports:
+      - "9696:9696"
+
+    # Volumes (HDD ONLY)
+    volumes:
+      - /mnt/orion-data/config/prowlarr:/config
+      - /mnt/orion-data/logs/media/prowlarr:/logs
+
+    # Resources
+    mem_limit: 1g
+
+  qbittorrent:
+    image: linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    restart: unless-stopped
+
+    # Environment
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+      - WEBUI_PORT=8080
+
+    # Ports
+    ports:
+      - "8080:8080"
+      - "6881:6881"
+      - "6881:6881/udp"
+
+    # Volumes (HDD ONLY)
+    volumes:
+      - /mnt/orion-data/config/qbittorrent:/config
+      - /mnt/orion-data/downloads:/downloads
+      - /mnt/orion-data/logs/media/qbittorrent:/logs
+
+    # Resources
+    mem_limit: 2g
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+# Networks
+networks:
+  default:
+    name: orion-media
+    driver: bridge
+
+# IMPORTANT NOTES:
+#
+# 1. HDD REQUIREMENT:
+#    - All volumes map to /mnt/orion-data
+#    - If HDD not mounted, containers will fail to start (DESIRED)
+#
+# 2. NO ORION CONTROL:
+#    - This stack is opaque to ORION
+#    - ORION observes metrics only
+#    - No restart/kill/cleanup paths
+#
+# 3. RESTART POLICY:
+#    - unless-stopped: Docker handles restarts
+#    - NOT managed by ORION
+#
+# 4. RESOURCE LIMITS:
+#    - mem_limit prevents OOM on Pi 5
+#    - No CPU limits (best effort)
+#
+# 5. DEPLOYMENT:
+#    - Manual: docker-compose up -d
+#    - NO auto-deploy scripts

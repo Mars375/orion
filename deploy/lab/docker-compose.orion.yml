@@ -1,0 +1,87 @@
+# ORION Core Services
+#
+# Deploys: Redis, Guardian, Brain, Memory, Watcher
+#
+# CRITICAL: N0 mode ONLY - observe, never act
+# All volumes MUST point to /mnt/orion-data (HDD)
+
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: orion-redis
+    restart: unless-stopped
+
+    # Command (enable persistence, disable dangerous commands)
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --dir /data
+      --rename-command FLUSHDB ""
+      --rename-command FLUSHALL ""
+      --rename-command CONFIG ""
+
+    # Ports
+    ports:
+      - "127.0.0.1:6379:6379"  # localhost only
+
+    # Volumes (HDD ONLY)
+    volumes:
+      - /mnt/orion-data/orion/redis:/data
+      - /mnt/orion-data/logs/orion/redis:/logs
+
+    # Resources
+    mem_limit: 512m
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ORION services are NOT containerized in Phase 2
+  # They will run as systemd services or manually
+  # This is because they require access to the codebase for development
+  #
+  # Future phases may containerize ORION services
+
+# Networks
+networks:
+  default:
+    name: orion-core
+    driver: bridge
+
+# IMPORTANT NOTES:
+#
+# 1. REDIS ONLY:
+#    - Only Redis is containerized
+#    - ORION services run on host for development
+#
+# 2. REDIS PERSISTENCE:
+#    - AOF enabled (appendonly)
+#    - fsync every second
+#    - Data on HDD
+#
+# 3. REDIS SECURITY:
+#    - Bound to localhost only
+#    - Dangerous commands disabled
+#    - No authentication (localhost trust)
+#
+# 4. N0 MODE:
+#    - ORION services observe only
+#    - No action execution
+#    - All decisions are NO_ACTION
+#
+# 5. DEPLOYMENT:
+#    - Redis: docker-compose -f docker-compose.orion.yml up -d
+#    - ORION services: run manually or via systemd
+#
+# 6. SYSTEMD SERVICES (not included, manual setup):
+#    - orion-watcher.service
+#    - orion-guardian.service
+#    - orion-brain.service
+#    - orion-memory.service

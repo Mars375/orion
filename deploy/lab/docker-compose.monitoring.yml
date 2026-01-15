@@ -1,0 +1,166 @@
+# ORION Core - Monitoring Stack
+#
+# Deploys: Prometheus, Grafana, Node Exporter, cAdvisor
+#
+# CRITICAL: All volumes MUST point to /mnt/orion-data (HDD)
+# NO alertmanager, NO auto-remediation
+
+version: '3.8'
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+
+    # User
+    user: "1000:1000"
+
+    # Command (disable alertmanager, enable lifecycle API)
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+
+    # Ports
+    ports:
+      - "127.0.0.1:9090:9090"  # localhost only
+
+    # Volumes (HDD ONLY)
+    volumes:
+      - /mnt/orion-data/config/prometheus:/etc/prometheus
+      - /mnt/orion-data/config/prometheus/data:/prometheus
+      - /mnt/orion-data/logs/monitoring/prometheus:/logs
+
+    # Resources
+    mem_limit: 2g
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+
+    # User
+    user: "1000:1000"
+
+    # Environment
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=orion
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_ANALYTICS_REPORTING_ENABLED=false
+      - GF_ANALYTICS_CHECK_FOR_UPDATES=false
+
+    # Ports
+    ports:
+      - "3000:3000"
+
+    # Volumes (HDD ONLY)
+    volumes:
+      - /mnt/orion-data/config/grafana:/var/lib/grafana
+      - /mnt/orion-data/logs/monitoring/grafana:/var/log/grafana
+
+    # Resources
+    mem_limit: 1g
+
+    # Dependencies
+    depends_on:
+      - prometheus
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  node_exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    restart: unless-stopped
+
+    # Command (expose filesystem and system stats)
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/host'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+
+    # Ports
+    ports:
+      - "9100:9100"
+
+    # Volumes (read-only host access)
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:host:ro,rslave
+
+    # Resources
+    mem_limit: 256m
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    restart: unless-stopped
+
+    # Ports
+    ports:
+      - "8081:8080"
+
+    # Volumes (read-only Docker and system access)
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+
+    # Privileged (required for cAdvisor)
+    privileged: true
+
+    # Resources
+    mem_limit: 512m
+
+# Networks
+networks:
+  default:
+    name: orion-monitoring
+    driver: bridge
+
+# IMPORTANT NOTES:
+#
+# 1. NO ALERTMANAGER:
+#    - Prometheus collects metrics only
+#    - No alert execution
+#    - ORION observes via Prometheus API
+#
+# 2. NO AUTO-REMEDIATION:
+#    - Metrics are observe-only
+#    - No triggers, no actions
+#
+# 3. LOCALHOST PROMETHEUS:
+#    - Prometheus bound to localhost only
+#    - Prevents external access
+#    - Grafana queries via Docker network
+#
+# 4. HDD STORAGE:
+#    - Prometheus TSDB on HDD
+#    - 30 day retention
+#    - Grafana dashboards on HDD
+#
+# 5. DEPLOYMENT:
+#    - Manual: docker-compose -f docker-compose.monitoring.yml up -d
+#    - NO auto-deploy
