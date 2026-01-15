@@ -1,0 +1,7 @@
+# ORION Bus Python Client Dependencies
+
+# Redis client
+redis==5.0.1
+
+# JSON Schema validation
+jsonschema==4.21.1
