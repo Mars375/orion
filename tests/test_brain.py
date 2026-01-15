@@ -44,15 +44,12 @@ class TestBrainInit:
         assert brain.autonomy_level == "N0"
         assert brain.source_name == "orion-brain"
 
-    def test_rejects_non_n0_mode(self, event_bus):
-        """Brain rejects non-N0 autonomy levels in Phase 1."""
-        with pytest.raises(ValueError, match="Phase 1 only supports N0"):
+    def test_rejects_unsupported_modes(self, event_bus):
+        """Brain rejects unsupported autonomy levels (N1, N3)."""
+        with pytest.raises(ValueError, match="Only N0 and N2 modes supported"):
             Brain(event_bus, autonomy_level="N1")
 
-        with pytest.raises(ValueError, match="Phase 1 only supports N0"):
-            Brain(event_bus, autonomy_level="N2")
-
-        with pytest.raises(ValueError, match="Phase 1 only supports N0"):
+        with pytest.raises(ValueError, match="Only N0 and N2 modes supported"):
             Brain(event_bus, autonomy_level="N3")
 
 
