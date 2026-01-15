@@ -59,7 +59,7 @@ class TestBrainReasoning:
 
     def test_generates_reasoning(self, brain, valid_incident_v1):
         """Brain generates reasoning for decisions."""
-        reasoning = brain._generate_reasoning(valid_incident_v1)
+        reasoning = brain._generate_reasoning_n0(valid_incident_v1)
 
         assert len(reasoning) >= 10  # Minimum required by contract
         assert "N0" in reasoning
@@ -68,7 +68,7 @@ class TestBrainReasoning:
 
     def test_reasoning_includes_incident_details(self, brain, valid_incident_v1):
         """Reasoning includes incident type and severity."""
-        reasoning = brain._generate_reasoning(valid_incident_v1)
+        reasoning = brain._generate_reasoning_n0(valid_incident_v1)
 
         assert valid_incident_v1["incident_type"] in reasoning
         assert valid_incident_v1["severity"] in reasoning
