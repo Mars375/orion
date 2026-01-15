@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orion.internal/schemas/outcome/v1.schema.json",
+  "title": "ORION Outcome",
+  "description": "Result of an executed action. Emitted by orion-commander after action execution completes (success or failure).",
+  "type": "object",
+  "required": ["version", "outcome_id", "timestamp", "source", "action_id", "status", "execution_time_ms"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Schema version for backward compatibility"
+    },
+    "outcome_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this outcome"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when outcome was recorded"
+    },
+    "source": {
+      "type": "string",
+      "const": "orion-commander",
+      "description": "Must be orion-commander (only commander emits outcomes)"
+    },
+    "action_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Action that was executed"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["succeeded", "failed", "rolled_back"],
+      "description": "Execution result status"
+    },
+    "execution_time_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Time taken to execute action in milliseconds"
+    },
+    "result": {
+      "type": "object",
+      "description": "Action-specific result data (stdout, metrics, etc.)"
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "Error code for programmatic handling"
+        },
+        "message": {
+          "type": "string",
+          "description": "Human-readable error message"
+        },
+        "details": {
+          "type": "object",
+          "description": "Additional error context"
+        }
+      },
+      "required": ["code", "message"],
+      "description": "Error information if status is failed (required for failed outcomes)"
+    },
+    "rollback_executed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether rollback was executed after failure"
+    },
+    "tags": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Optional key-value tags for categorization"
+    }
+  }
+}

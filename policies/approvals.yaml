@@ -1,0 +1,73 @@
+# Approval Policy
+#
+# Defines approval behavior for RISKY actions.
+# At autonomy level N3, RISKY actions require human approval.
+# At autonomy levels N0-N2, RISKY actions are NEVER executed.
+#
+# Approval flow:
+# 1. orion-brain emits decision with requires_approval: true
+# 2. orion-approval-telegram sends request to human
+# 3. Human approves or denies via Telegram
+# 4. orion-approval-telegram emits approval event
+# 5. orion-brain emits action IF approved
+#
+# Default behavior: NO_ACTION if approval not received within timeout
+
+version: "1.0"
+
+approval_settings:
+  # Global approval settings
+  default_timeout: "300s"  # 5 minutes default
+  max_timeout: "3600s"  # 1 hour maximum
+
+  # Auto-deny if no response
+  timeout_behavior: "deny"  # Options: deny, expire
+
+  # Approval persistence
+  approval_persistence: false  # Approvals are one-time use, not reusable
+
+  # Notification channels
+  channels:
+    - type: "telegram"
+      enabled: true  # Only channel for Phase 0
+      description: "Send approval requests via Telegram bot"
+
+  # Escalation (not implemented in Phase 0)
+  escalation_enabled: false
+
+# Per-action approval overrides (optional)
+# These override the default_timeout for specific action types
+action_overrides:
+  - action_type: "restart_service"
+    timeout: "300s"  # 5 minutes
+
+  - action_type: "stop_edge_device"
+    timeout: "600s"  # 10 minutes (more time for critical decision)
+
+  - action_type: "restart_edge_device"
+    timeout: "600s"  # 10 minutes
+
+# Autonomy level behavior
+autonomy_levels:
+  N0:  # Observe only
+    allow_safe_actions: false
+    allow_risky_actions: false
+    description: "No actions executed, observation only"
+
+  N1:  # Suggest actions
+    allow_safe_actions: false
+    allow_risky_actions: false
+    description: "Suggest actions to human, but do not execute"
+
+  N2:  # Execute SAFE actions
+    allow_safe_actions: true
+    allow_risky_actions: false
+    description: "Execute SAFE actions automatically, suggest RISKY actions"
+
+  N3:  # Execute with approval
+    allow_safe_actions: true
+    allow_risky_actions: true  # But only with approval
+    description: "Execute SAFE actions automatically, RISKY actions after approval"
+
+# Initial autonomy level for new ORION deployment
+default_autonomy_level: "N0"

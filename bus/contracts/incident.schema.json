@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orion.internal/schemas/incident/v1.schema.json",
+  "title": "ORION Incident",
+  "description": "Correlated events that represent a meaningful situation requiring attention or action. Emitted by orion-guardian.",
+  "type": "object",
+  "required": ["version", "incident_id", "timestamp", "source", "incident_type", "severity", "event_ids", "correlation_window", "state"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Schema version for backward compatibility"
+    },
+    "incident_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this incident"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when incident was detected"
+    },
+    "source": {
+      "type": "string",
+      "const": "orion-guardian",
+      "description": "Must be orion-guardian (only guardian emits incidents)"
+    },
+    "incident_type": {
+      "type": "string",
+      "enum": [
+        "service_outage",
+        "edge_device_failure",
+        "metric_anomaly",
+        "repeated_failures",
+        "correlation_detected"
+      ],
+      "description": "Type of incident detected through correlation"
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"],
+      "description": "Incident severity based on impact and urgency"
+    },
+    "event_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uuid"
+      },
+      "minItems": 1,
+      "description": "Event IDs that contributed to this incident"
+    },
+    "correlation_window": {
+      "type": "object",
+      "required": ["start", "end"],
+      "additionalProperties": false,
+      "properties": {
+        "start": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Start of the correlation time window"
+        },
+        "end": {
+          "type": "string",
+          "format": "date-time",
+          "description": "End of the correlation time window"
+        }
+      },
+      "description": "Time window during which events were correlated"
+    },
+    "state": {
+      "type": "string",
+      "enum": ["open", "acknowledged", "resolved"],
+      "description": "Current incident state"
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable description of what was detected"
+    },
+    "tags": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Optional key-value tags for categorization"
+    }
+  }
+}

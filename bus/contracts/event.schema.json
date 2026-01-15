@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orion.internal/schemas/event/v1.schema.json",
+  "title": "ORION Event",
+  "description": "Base event emitted by any ORION module. Events are observations - facts about the world with no decision attached.",
+  "type": "object",
+  "required": ["version", "event_id", "timestamp", "source", "event_type", "severity", "data"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Schema version for backward compatibility"
+    },
+    "event_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this event"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when event occurred"
+    },
+    "source": {
+      "type": "string",
+      "pattern": "^orion-[a-z-]+$",
+      "description": "ORION module that emitted this event (e.g., orion-guardian, orion-edge-agent)"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "metric_threshold_exceeded",
+        "service_down",
+        "service_up",
+        "edge_device_offline",
+        "edge_device_online",
+        "edge_telemetry",
+        "user_command_received",
+        "external_api_failure",
+        "external_api_success"
+      ],
+      "description": "Type of event observed"
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["info", "warning", "error", "critical"],
+      "description": "Event severity level"
+    },
+    "data": {
+      "type": "object",
+      "description": "Event-specific payload. Structure varies by event_type."
+    },
+    "tags": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Optional key-value tags for correlation and filtering"
+    }
+  }
+}

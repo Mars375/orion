@@ -7,6 +7,7 @@
 __pycache__/
 *.pyc
 .venv/
+.pytest_cache/
 
 # Logs
 logs/
@@ -19,3 +20,7 @@ Thumbs.db
 # Editors
 .vscode/
 .idea/
+
+# Claude Code
+.claude/
+tmpclaude-*

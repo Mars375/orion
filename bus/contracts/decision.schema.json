@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orion.internal/schemas/decision/v1.schema.json",
+  "title": "ORION Decision",
+  "description": "Reasoning outcome from orion-brain about how to respond to an incident. Default decision is NO_ACTION.",
+  "type": "object",
+  "required": ["version", "decision_id", "timestamp", "source", "incident_id", "decision_type", "safety_classification", "requires_approval", "reasoning"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Schema version for backward compatibility"
+    },
+    "decision_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this decision"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when decision was made"
+    },
+    "source": {
+      "type": "string",
+      "const": "orion-brain",
+      "description": "Must be orion-brain (only brain emits decisions)"
+    },
+    "incident_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Incident this decision responds to"
+    },
+    "decision_type": {
+      "type": "string",
+      "enum": [
+        "NO_ACTION",
+        "SUGGEST_ACTION",
+        "EXECUTE_SAFE_ACTION",
+        "REQUEST_APPROVAL"
+      ],
+      "description": "Type of decision made by brain"
+    },
+    "safety_classification": {
+      "type": "string",
+      "enum": ["SAFE", "RISKY", "UNKNOWN"],
+      "description": "Safety classification of proposed action (UNKNOWN defaults to RISKY)"
+    },
+    "requires_approval": {
+      "type": "boolean",
+      "description": "Whether this decision requires human approval before execution"
+    },
+    "proposed_action": {
+      "type": "object",
+      "required": ["action_type"],
+      "additionalProperties": false,
+      "properties": {
+        "action_type": {
+          "type": "string",
+          "description": "Type of action proposed (must match action.schema.json action_type)"
+        },
+        "parameters": {
+          "type": "object",
+          "description": "Action-specific parameters"
+        }
+      },
+      "description": "Action being proposed (omit for NO_ACTION)"
+    },
+    "reasoning": {
+      "type": "string",
+      "minLength": 10,
+      "description": "Explainable reasoning for this decision (minimum 10 characters, required for auditability)"
+    },
+    "autonomy_level": {
+      "type": "string",
+      "enum": ["N0", "N1", "N2", "N3"],
+      "description": "Current autonomy level at time of decision"
+    },
+    "tags": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Optional key-value tags for categorization"
+    }
+  }
+}

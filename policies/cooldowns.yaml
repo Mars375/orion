@@ -1,0 +1,88 @@
+# Cooldown Policy
+#
+# Defines temporal constraints and rate limiting for actions to prevent:
+# - Rapid repeated actions (flapping)
+# - Resource exhaustion
+# - Automation loops
+# - Cascading failures
+#
+# Cooldowns are enforced by orion-brain before making decisions.
+# If an action was recently executed, brain MUST decide NO_ACTION.
+#
+# Default behavior: If no cooldown defined, use global_default_cooldown
+
+version: "1.0"
+
+global_settings:
+  # Default cooldown applied if no specific rule matches
+  global_default_cooldown: "60s"  # 1 minute
+
+  # Cooldown enforcement
+  enforcement: "strict"  # Options: strict, advisory
+
+  # Cooldown state persistence
+  state_backend: "redis"  # Where to track cooldown state
+
+# Per-action cooldowns
+action_cooldowns:
+  # Service control
+  - action_type: "restart_service"
+    cooldown: "300s"  # 5 minutes between restarts
+    reason: "Prevent restart loops and allow service stabilization"
+    applies_per: "service_name"  # Track cooldown per service, not globally
+
+  - action_type: "scale_service"
+    cooldown: "120s"  # 2 minutes between scaling operations
+    reason: "Allow scaling operations to stabilize before next change"
+    applies_per: "service_name"
+
+  # Edge device control
+  - action_type: "stop_edge_device"
+    cooldown: "600s"  # 10 minutes
+    reason: "Prevent rapid stop/start cycles that could damage hardware"
+    applies_per: "device_id"
+
+  - action_type: "restart_edge_device"
+    cooldown: "600s"  # 10 minutes
+    reason: "Allow device to fully boot and stabilize"
+    applies_per: "device_id"
+
+  # Diagnostics (SAFE but resource-intensive)
+  - action_type: "run_diagnostic"
+    cooldown: "300s"  # 5 minutes
+    reason: "Prevent diagnostic spam and resource exhaustion"
+    applies_per: "diagnostic_type"
+
+  # Notifications (SAFE but can cause spam)
+  - action_type: "send_notification"
+    cooldown: "10s"  # 10 seconds
+    reason: "Prevent notification spam"
+    applies_per: "notification_channel"
+
+  - action_type: "acknowledge_incident"
+    cooldown: "0s"  # No cooldown, can acknowledge immediately
+    reason: "Acknowledgement is state-only, no resource impact"
+    applies_per: "incident_id"
+
+# Incident-level cooldowns (prevent decision spam)
+incident_cooldowns:
+  # After making any decision about an incident, wait before next decision
+  decision_cooldown: "30s"
+  reason: "Prevent rapid decision-making loops"
+
+# Circuit breaker behavior
+circuit_breaker:
+  enabled: true
+
+  # If N failures occur within window, stop attempting action
+  failure_threshold: 3
+  failure_window: "300s"  # 5 minutes
+
+  # After circuit opens, how long before retry
+  circuit_open_duration: "600s"  # 10 minutes
+
+  # Actions subject to circuit breaker (typically RISKY actions)
+  applies_to:
+    - "restart_service"
+    - "scale_service"
+    - "restart_edge_device"

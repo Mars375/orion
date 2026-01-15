@@ -1,0 +1,72 @@
+# RISKY Actions Denylist (Approval Required)
+#
+# Actions classified as RISKY require human approval before execution.
+# RISKY actions can only be executed at autonomy level N3 and ONLY after
+# explicit approval via orion-approval-telegram.
+#
+# Criteria for RISKY classification:
+# - Action is irreversible or difficult to reverse
+# - Action has external side effects (restarts, scaling, hardware control)
+# - Action could damage hardware, lose data, or cause service disruption
+# - Action affects physical devices
+# - Failure has significant blast radius
+#
+# Default behavior: If an action is not in actions_safe.yaml, it is RISKY.
+# Actions listed here are EXPLICITLY RISKY with documented reasons.
+
+version: "1.0"
+
+risky_actions:
+  # Service control actions
+  - action_type: "restart_service"
+    description: "Restart a service or container"
+    reversible: false  # Cannot undo a restart
+    external_side_effects: true
+    blast_radius: "medium"
+    justification: "Service restarts cause temporary unavailability"
+    requires_approval: true
+    approval_timeout: "300s"  # 5 minutes to approve
+    constraints:
+      - "Must specify exact service name"
+      - "Must have rollback plan documented"
+
+  - action_type: "scale_service"
+    description: "Scale service replicas up or down"
+    reversible: true  # Can scale back
+    external_side_effects: true
+    blast_radius: "medium"
+    justification: "Scaling affects resource usage and availability"
+    requires_approval: true
+    approval_timeout: "300s"
+    constraints:
+      - "Minimum replicas: 1"
+      - "Maximum replicas: 10"
+      - "Cannot scale critical services below 2 replicas"
+
+  # Edge device control
+  - action_type: "stop_edge_device"
+    description: "Stop an edge device (e.g., robot)"
+    reversible: false  # Requires physical intervention or remote restart
+    external_side_effects: true
+    blast_radius: "high"
+    justification: "Stopping edge device may require physical access to restart"
+    requires_approval: true
+    approval_timeout: "600s"  # 10 minutes to approve
+    constraints:
+      - "Must verify device is in safe state before stop"
+      - "Must ensure device will not be damaged by stop"
+
+  - action_type: "restart_edge_device"
+    description: "Restart an edge device"
+    reversible: false
+    external_side_effects: true
+    blast_radius: "high"
+    justification: "Edge device restart affects physical systems and may fail"
+    requires_approval: true
+    approval_timeout: "600s"
+    constraints:
+      - "Device must support remote restart"
+      - "Must verify device safety before restart"
+
+# Default classification: UNKNOWN actions are treated as RISKY
+# Never execute an action with UNKNOWN safety classification

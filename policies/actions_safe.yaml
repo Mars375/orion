@@ -1,0 +1,45 @@
+# SAFE Actions Allowlist
+#
+# Actions classified as SAFE can be executed automatically by ORION
+# at autonomy level N2 or higher WITHOUT human approval.
+#
+# Criteria for SAFE classification:
+# - Action is fully reversible
+# - Action has no external side effects
+# - Action cannot damage hardware or data
+# - Action is read-only or notification-only
+# - Failure has minimal blast radius
+#
+# Default behavior: If an action is not explicitly listed here, it is NOT SAFE.
+
+version: "1.0"
+
+safe_actions:
+  # Observability and notifications
+  - action_type: "send_notification"
+    description: "Send alert via Telegram or other notification channel"
+    reversible: false
+    external_side_effects: true  # Sends external message
+    justification: "Notifications are informational only and cannot cause harm"
+    max_frequency: "5 per minute"  # Prevent spam
+
+  - action_type: "acknowledge_incident"
+    description: "Mark incident as acknowledged in ORION state"
+    reversible: true
+    external_side_effects: false
+    justification: "State change is internal and reversible"
+    max_frequency: "unlimited"
+
+  - action_type: "run_diagnostic"
+    description: "Execute read-only diagnostic commands"
+    reversible: true
+    external_side_effects: false
+    justification: "Diagnostics are read-only and produce logs only"
+    max_frequency: "10 per hour"  # Prevent resource exhaustion
+    constraints:
+      - "Must be read-only commands only"
+      - "No write operations permitted"
+      - "Timeout enforced at 30 seconds"
+
+# Actions NOT listed above are implicitly NOT SAFE and require
+# classification in actions_risky.yaml or explicit denial.

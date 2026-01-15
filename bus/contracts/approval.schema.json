@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orion.internal/schemas/approval/v1.schema.json",
+  "title": "ORION Approval",
+  "description": "Human approval for RISKY actions. Emitted by orion-approval-telegram when user approves or denies.",
+  "type": "object",
+  "required": ["version", "approval_id", "timestamp", "source", "decision_id", "status", "approved_by"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Schema version for backward compatibility"
+    },
+    "approval_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this approval"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when approval was recorded"
+    },
+    "source": {
+      "type": "string",
+      "const": "orion-approval-telegram",
+      "description": "Must be orion-approval-telegram (only approval module emits approvals)"
+    },
+    "decision_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Decision being approved or denied"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["approved", "denied", "expired"],
+      "description": "Approval status"
+    },
+    "approved_by": {
+      "type": "string",
+      "description": "Identifier of the human who approved/denied (e.g., Telegram user ID)"
+    },
+    "expiry_timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this approval expires (if approved)"
+    },
+    "reason": {
+      "type": "string",
+      "description": "Optional reason provided by approver"
+    },
+    "tags": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Optional key-value tags for categorization"
+    }
+  }
+}

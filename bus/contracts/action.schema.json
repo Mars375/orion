@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orion.internal/schemas/action/v1.schema.json",
+  "title": "ORION Action",
+  "description": "Command to execute an action. Consumed by orion-commander. MUST have passed safety checks before emission.",
+  "type": "object",
+  "required": ["version", "action_id", "timestamp", "source", "decision_id", "action_type", "safety_classification", "state", "parameters"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Schema version for backward compatibility"
+    },
+    "action_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this action"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when action was created"
+    },
+    "source": {
+      "type": "string",
+      "pattern": "^orion-(brain|approval-telegram)$",
+      "description": "Module that authorized this action (orion-brain or orion-approval-telegram)"
+    },
+    "decision_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Decision that led to this action"
+    },
+    "action_type": {
+      "type": "string",
+      "enum": [
+        "restart_service",
+        "scale_service",
+        "send_notification",
+        "acknowledge_incident",
+        "run_diagnostic",
+        "stop_edge_device",
+        "restart_edge_device"
+      ],
+      "description": "Type of action to execute"
+    },
+    "safety_classification": {
+      "type": "string",
+      "enum": ["SAFE", "RISKY"],
+      "description": "Safety classification (MUST be explicitly determined, never UNKNOWN)"
+    },
+    "state": {
+      "type": "string",
+      "enum": ["pending", "executing", "succeeded", "failed", "rolled_back"],
+      "description": "Current action execution state"
+    },
+    "parameters": {
+      "type": "object",
+      "description": "Action-specific parameters validated against action_type requirements"
+    },
+    "approval_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Approval ID if this action required approval (for RISKY actions)"
+    },
+    "rollback_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this action supports rollback if it fails"
+    },
+    "dry_run": {
+      "type": "boolean",
+      "default": false,
+      "description": "If true, action is simulated but not executed (for testing)"
+    },
+    "tags": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Optional key-value tags for categorization"
+    }
+  }
+}
