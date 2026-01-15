@@ -1,12 +1,12 @@
 # ORION Project Context
 
 **Last Updated**: 2026-01-15
-**Current Phase**: Phase 2 Complete
-**Autonomy Level**: N0 (Observe Only)
+**Current Phase**: Phase 3 Complete
+**Autonomy Level**: N2 Capable (N0 or N2 configurable)
 
 ## What ORION Is
 
-ORION is a safety-first autonomous homelab system that observes infrastructure, reasons about incidents, and makes decisions—but only when safe. Core principle: observation precedes action, and inaction is always preferred to risky action. Human-in-the-loop for anything beyond observation. Built around SRE principles with explicit safety invariants that cannot be bypassed.
+ORION is a safety-first autonomous homelab system that observes infrastructure, reasons about incidents, and makes decisions—but only when safe. Core principle: observation precedes action, and inaction is always preferred to risky action. SAFE actions can execute automatically in N2 mode, but RISKY actions never execute without human approval (N3+). Built around SRE principles with explicit safety invariants that cannot be bypassed.
 
 ## Current Project State
 
@@ -15,11 +15,19 @@ ORION is a safety-first autonomous homelab system that observes infrastructure, 
 | Phase 0 | COMPLETE | Foundation & Governance (contracts, policies, tests) |
 | Phase 1 | COMPLETE | Core Observability (event bus, guardian, brain N0, memory) |
 | Phase 2 | COMPLETE | Hub Infrastructure (media stack, monitoring, deployment docs) |
-| Phase 3+ | NOT STARTED | Future phases require explicit approval |
+| Phase 3 | COMPLETE | Controlled Autonomy (N2 mode, Commander, SAFE actions only) |
+| Phase 4+ | NOT STARTED | Future phases require explicit approval |
 
-**Current Autonomy Level**: N0 (observe only)
+**Autonomy Levels Supported**:
+- **N0** (Observe Only): All decisions are NO_ACTION, no execution
+- **N2** (SAFE Actions): SAFE actions execute automatically, RISKY actions blocked
 
-**No actions are executed**. All decisions are NO_ACTION.
+**Actions That Can Execute** (N2 mode only):
+- `acknowledge_incident`: Updates incident state (idempotent, SAFE)
+
+**Actions That NEVER Execute**:
+- Any RISKY action (restart_service, scale_service, stop_edge_device, etc.)
+- Unknown or unclassified actions
 
 ## What Exists Today
 
@@ -27,7 +35,14 @@ ORION is a safety-first autonomous homelab system that observes infrastructure, 
 
 - **Event Bus** (`orion-bus`): Redis Streams with JSON Schema validation
 - **Guardian** (`orion-guardian`): Event correlation into incidents
-- **Brain** (`orion-brain`): Decision logic (N0 mode, NO_ACTION enforced)
+- **Brain** (`orion-brain`): Decision logic (N0 + N2 modes, policy enforcement)
+  - PolicyLoader: SAFE/RISKY classification from YAML
+  - CooldownTracker: Rate limiting and repeated execution prevention
+  - CircuitBreaker: Failure protection (stops after repeated failures)
+- **Commander** (`orion-commander`): Action execution engine (SAFE actions only)
+  - Executes `acknowledge_incident` action
+  - Automatic rollback on failure
+  - Emits outcome contracts for audit trail
 - **Memory** (`orion-memory`): Append-only JSONL audit trail
 - **Watcher** (`orion-watcher`): System resource observer
 
@@ -40,13 +55,18 @@ ORION is a safety-first autonomous homelab system that observes infrastructure, 
 
 ### Tests
 
-- 109 tests passing (Phase 0 + Phase 1)
+- 207 tests passing (Phases 0-3)
 - Contract validation (24 tests)
 - Policy consistency (17 tests)
 - Bus functionality (16 tests)
 - Memory immutability (14 tests)
 - Guardian correlation (21 tests)
 - Brain N0 enforcement (17 tests)
+- Brain N2 behavior (21 tests)
+- Policy loader (7 tests)
+- Cooldown tracker (16 tests)
+- Circuit breaker (19 tests)
+- Commander execution (26 tests)
 
 ### Documentation
 
@@ -59,18 +79,23 @@ ORION is a safety-first autonomous homelab system that observes infrastructure, 
 
 ## What Is Explicitly NOT Allowed
 
-### Actions ORION Cannot Take
+### RISKY Actions ORION Cannot Execute (Even in N2 Mode)
 
-- Restart services or containers
-- Stop or kill processes
+- Restart services or containers (`restart_service` - RISKY)
+- Stop or kill processes (`stop_edge_device` - RISKY)
+- Scale services (`scale_service` - RISKY)
 - Delete files or clean up storage
 - Modify configurations
-- Send notifications (beyond logging)
 - Execute shell commands
-- Control Docker
+- Control Docker directly
 - Control hardware (fans, power, network)
-- Scale services
 - Deploy or update services
+
+### SAFE Actions ORION Can Execute (N2 Mode Only)
+
+- Acknowledge incidents (`acknowledge_incident` - SAFE, idempotent)
+- Send notifications (`send_notification` - SAFE, rate-limited) [not yet implemented]
+- Run diagnostics (`run_diagnostic` - SAFE, rate-limited) [not yet implemented]
 
 ### Behaviors That Are Forbidden
 

@@ -1,9 +1,16 @@
 # orion-brain
 
 **Language:** Python
+**Phase 3 Status:** Implemented (N0 + N2 autonomy levels)
 
 ## Purpose
 Makes decisions about how to respond to incidents by applying safety policies, evaluating action classifications, and enforcing cooldowns. Brain is the reasoning module—it decides WHAT to do (or not do), but never executes actions itself.
+
+**Phase 3 Scope:**
+- N0 mode: All decisions are NO_ACTION (observe only)
+- N2 mode: SAFE actions execute automatically, RISKY actions result in NO_ACTION
+- Cooldown enforcement prevents rapid repeated execution
+- Circuit breaker stops execution after repeated failures
 
 ## Inputs (Contracts Consumed)
 - `incident.schema.json` — Incidents from orion-guardian requiring decision-making
@@ -25,6 +32,35 @@ Makes decisions about how to respond to incidents by applying safety policies, e
 - **Invalid incident**: If incident fails schema validation, brain logs error and ignores incident
 - **Cooldown state unavailable**: If cooldown state cannot be checked (Redis down), brain defaults to NO_ACTION
 - **Unknown action type**: If proposed action is not in SAFE or RISKY lists, brain classifies as RISKY
+
+## Phase 3 Implementation
+
+### Autonomy Levels
+- **N0**: Every decision is NO_ACTION (observe only)
+- **N2**: SAFE actions execute automatically, RISKY → NO_ACTION
+
+### N2 Decision Flow
+1. Receive incident from Guardian
+2. Determine appropriate action type (`acknowledge_incident` for medium+ severity)
+3. Check policy classification (SAFE, RISKY, or UNKNOWN)
+4. If RISKY or UNKNOWN → NO_ACTION
+5. If SAFE → Check cooldown
+6. If in cooldown → NO_ACTION
+7. If circuit breaker open → NO_ACTION
+8. All checks passed → EXECUTE_SAFE_ACTION
+9. Record cooldown after decision
+
+### Safety Components
+- **PolicyLoader**: Loads SAFE/RISKY classifications from YAML
+- **CooldownTracker**: Prevents rapid repeated execution
+- **CircuitBreaker**: Stops execution after repeated failures
+
+### Fail Closed Behavior
+- Unknown actions → NO_ACTION
+- Missing policies → NO_ACTION
+- Cooldown active → NO_ACTION
+- Circuit open → NO_ACTION
+- RISKY actions in N2 → NO_ACTION
 
 ## Explicit Non-Responsibilities (What Brain NEVER Does)
 - **Never executes actions**: Brain only decides, orion-commander executes
