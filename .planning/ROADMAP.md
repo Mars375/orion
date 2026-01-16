@@ -4,6 +4,23 @@
 
 ORION is a modular, autonomous homelab system built around safety, SRE principles, and controlled intelligence. The journey progresses from logical foundation (contracts, policies, tests) through core observability, then infrastructure deployment, followed by carefully controlled autonomy with human oversight, ultimately building toward multi-model reasoning and edge integration.
 
+## Current State
+
+**Phases 0-4 Complete** ✅ (2026-01-15 through 2026-01-16)
+
+ORION supports **N0 (observe-only), N2 (SAFE actions), and N3 (approved RISKY actions) modes**. The system observes infrastructure, correlates events into incidents, and makes decisions. In N2 mode, SAFE actions execute automatically. In N3 mode, SAFE actions auto-execute and RISKY actions require explicit ADMIN approval.
+
+**Implementation Status:**
+- ✅ Event bus (Redis Streams) with contract validation
+- ✅ Guardian (event correlation into incidents)
+- ✅ Brain (N0/N2/N3 decision logic with policy enforcement)
+- ✅ Commander (action execution with rollback)
+- ✅ Approval system (coordinator, admin identity validation)
+- ✅ Safety mechanisms (cooldowns, circuit breaker, approval expiration)
+- ✅ 238 tests passing (all green)
+
+**Next Phase:** Phase 5 (AI Council) - Multi-model reasoning with confidence scoring
+
 ## Domain Expertise
 
 None (specialized homelab/SRE system with custom architecture)
@@ -16,12 +33,12 @@ None (specialized homelab/SRE system with custom architecture)
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 0: Foundation & Governance** - Contracts, policies, tests (no runtime)
+- [x] **Phase 0: Foundation & Governance** - Contracts, policies, tests (no runtime) ✅
 - [ ] **Phase 0.1: Hardware Clean Reset (INSERTED)** - Backup, flash OS, hardware prep
-- [ ] **Phase 1: Core Observability** - Event bus, guardian, memory (N0 only)
-- [ ] **Phase 2: Hub Infrastructure** - Media, access, storage, dashboards
-- [ ] **Phase 3: Controlled Autonomy** - Safe actions with allowlists, cooldowns, rollback
-- [ ] **Phase 4: Telegram Approvals** - Risky action approval workflow
+- [x] **Phase 1: Core Observability** - Event bus, guardian, memory (N0 only) ✅
+- [x] **Phase 2: Hub Infrastructure** - Media, access, storage, dashboards ✅
+- [x] **Phase 3: Controlled Autonomy** - Safe actions with allowlists, cooldowns, rollback ✅
+- [x] **Phase 4: Telegram Approvals** - Risky action approval workflow ✅
 - [ ] **Phase 5: AI Council** - Multi-model reasoning with confidence scoring
 - [ ] **Phase 6: Edge Integration** - Autonomous edge devices (robot)
 - [ ] **Phase 7: Compute Expansion** - Optional worker node capacity
@@ -206,12 +223,12 @@ Note: Phase 0.1 (Hardware Clean Reset) can be skipped during early development i
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 0. Foundation & Governance | 0/? | Not started | - |
-| 0.1. Hardware Clean Reset | 0/? | Not started | - |
-| 1. Core Observability | 0/? | Not started | - |
-| 2. Hub Infrastructure | 0/? | Not started | - |
-| 3. Controlled Autonomy | 0/? | Not started | - |
-| 4. Telegram Approvals | 0/? | Not started | - |
+| 0. Foundation & Governance | Complete | ✅ Complete | 2026-01-15 |
+| 0.1. Hardware Clean Reset | 0/? | Deferred | - |
+| 1. Core Observability | Complete | ✅ Complete | 2026-01-15 |
+| 2. Hub Infrastructure | Complete | ✅ Complete | 2026-01-15 |
+| 3. Controlled Autonomy | Complete | ✅ Complete | 2026-01-15 |
+| 4. Telegram Approvals | Complete | ✅ Complete | 2026-01-16 |
 | 5. AI Council | 0/? | Not started | - |
 | 6. Edge Integration | 0/? | Not started | - |
 | 7. Compute Expansion | 0/? | Not started | - |
