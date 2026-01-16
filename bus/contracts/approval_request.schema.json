@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orion.internal/schemas/approval_request/v1.schema.json",
+  "title": "ORION Approval Request",
+  "description": "Request for human approval of a RISKY action. Emitted by orion-brain when N3 mode requires approval.",
+  "type": "object",
+  "required": ["version", "approval_request_id", "timestamp", "source", "decision_id", "action_type", "risk_level", "requested_action", "expires_at"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Schema version for backward compatibility"
+    },
+    "approval_request_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this approval request"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when request was created"
+    },
+    "source": {
+      "type": "string",
+      "const": "orion-brain",
+      "description": "Must be orion-brain (only brain requests approvals)"
+    },
+    "decision_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Decision that requires approval"
+    },
+    "action_type": {
+      "type": "string",
+      "description": "Type of action requiring approval"
+    },
+    "risk_level": {
+      "type": "string",
+      "enum": ["SAFE", "RISKY"],
+      "description": "Risk classification (should always be RISKY for approval requests)"
+    },
+    "requested_action": {
+      "type": "object",
+      "required": ["action_type", "parameters"],
+      "additionalProperties": false,
+      "properties": {
+        "action_type": {
+          "type": "string",
+          "description": "Type of action to execute if approved"
+        },
+        "parameters": {
+          "type": "object",
+          "description": "Action-specific parameters"
+        },
+        "reasoning": {
+          "type": "string",
+          "minLength": 10,
+          "description": "Why this action is being requested"
+        }
+      },
+      "description": "Details of the action requiring approval"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this approval request expires (timeout)"
+    },
+    "incident_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Related incident ID"
+    },
+    "tags": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Optional key-value tags for categorization"
+    }
+  }
+}

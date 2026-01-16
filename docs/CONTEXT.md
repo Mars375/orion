@@ -1,8 +1,8 @@
 # ORION Project Context
 
-**Last Updated**: 2026-01-15
-**Current Phase**: Phase 3 Complete
-**Autonomy Level**: N2 Capable (N0 or N2 configurable)
+**Last Updated**: 2026-01-16
+**Current Phase**: Phase 4 Complete
+**Autonomy Level**: N3 Capable (N0, N2, or N3 configurable)
 
 ## What ORION Is
 
@@ -16,18 +16,28 @@ ORION is a safety-first autonomous homelab system that observes infrastructure, 
 | Phase 1 | COMPLETE | Core Observability (event bus, guardian, brain N0, memory) |
 | Phase 2 | COMPLETE | Hub Infrastructure (media stack, monitoring, deployment docs) |
 | Phase 3 | COMPLETE | Controlled Autonomy (N2 mode, Commander, SAFE actions only) |
-| Phase 4+ | NOT STARTED | Future phases require explicit approval |
+| Phase 4 | COMPLETE | Human Authority & Approvals (N3 mode, ADMIN approvals for RISKY actions) |
+| Phase 5+ | NOT STARTED | Future phases require explicit approval |
 
 **Autonomy Levels Supported**:
 - **N0** (Observe Only): All decisions are NO_ACTION, no execution
 - **N2** (SAFE Actions): SAFE actions execute automatically, RISKY actions blocked
+- **N3** (Approved RISKY Actions): SAFE actions auto-execute, RISKY actions require ADMIN approval
 
-**Actions That Can Execute** (N2 mode only):
-- `acknowledge_incident`: Updates incident state (idempotent, SAFE)
+**Actions That Can Execute**:
+- **N2 mode**: `acknowledge_incident` (SAFE, idempotent)
+- **N3 mode**: SAFE actions + approved RISKY actions
+
+**RISKY Actions** (require ADMIN approval in N3):
+- `restart_service` - Restart a service or container
+- `scale_service` - Scale service replicas
+- `stop_edge_device` - Stop an edge device
+- `restart_edge_device` - Restart an edge device
 
 **Actions That NEVER Execute**:
-- Any RISKY action (restart_service, scale_service, stop_edge_device, etc.)
 - Unknown or unclassified actions
+- RISKY actions without valid, unexpired approval
+- Any action in N0 mode
 
 ## What Exists Today
 
@@ -35,12 +45,18 @@ ORION is a safety-first autonomous homelab system that observes infrastructure, 
 
 - **Event Bus** (`orion-bus`): Redis Streams with JSON Schema validation
 - **Guardian** (`orion-guardian`): Event correlation into incidents
-- **Brain** (`orion-brain`): Decision logic (N0 + N2 modes, policy enforcement)
+- **Brain** (`orion-brain`): Decision logic (N0, N2, N3 modes, policy enforcement)
   - PolicyLoader: SAFE/RISKY classification from YAML
   - CooldownTracker: Rate limiting and repeated execution prevention
   - CircuitBreaker: Failure protection (stops after repeated failures)
-- **Commander** (`orion-commander`): Action execution engine (SAFE actions only)
-  - Executes `acknowledge_incident` action
+  - N3 mode: Emits approval requests for RISKY actions
+- **Approval System** (`orion-approval`): Human authority and approvals (N3 mode)
+  - AdminIdentity: Single-admin identity verification
+  - ApprovalCoordinator: Approval tracking, expiration, timeout handling
+  - Supports approve/deny/force decisions with overrides
+- **Commander** (`orion-commander`): Action execution engine
+  - Executes SAFE actions automatically (N2/N3)
+  - Executes RISKY actions only with valid, unexpired approval (N3)
   - Automatic rollback on failure
   - Emits outcome contracts for audit trail
 - **Memory** (`orion-memory`): Append-only JSONL audit trail
@@ -55,7 +71,7 @@ ORION is a safety-first autonomous homelab system that observes infrastructure, 
 
 ### Tests
 
-- 207 tests passing (Phases 0-3)
+- 238 tests passing (Phases 0-4)
 - Contract validation (24 tests)
 - Policy consistency (17 tests)
 - Bus functionality (16 tests)
@@ -63,10 +79,16 @@ ORION is a safety-first autonomous homelab system that observes infrastructure, 
 - Guardian correlation (21 tests)
 - Brain N0 enforcement (17 tests)
 - Brain N2 behavior (21 tests)
+- Brain N3 approvals (4 tests)
 - Policy loader (7 tests)
 - Cooldown tracker (16 tests)
 - Circuit breaker (19 tests)
 - Commander execution (26 tests)
+- Approval system (31 tests)
+  - Admin identity (11 tests)
+  - Approval coordinator (9 tests)
+  - Commander approval validation (3 tests)
+  - Phase 4 invariants (4 tests)
 
 ### Documentation
 

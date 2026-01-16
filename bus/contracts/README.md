@@ -35,11 +35,23 @@ Defines the strict, versioned contracts for all inter-module communication in OR
 - **States**: pending, executing, succeeded, failed, rolled_back
 - **Required fields**: version, action_id, timestamp, source, decision_id, action_type, safety_classification, state, parameters
 
-### Approval (`approval.schema.json`)
-- **Emitted by**: `orion-approval-telegram` ONLY
-- **Purpose**: Human approval or denial of a RISKY action
-- **Status**: approved, denied, expired
-- **Required fields**: version, approval_id, timestamp, source (must be "orion-approval-telegram"), decision_id, status, approved_by
+### Approval Request (`approval_request.schema.json`)
+- **Emitted by**: `orion-brain` ONLY
+- **Purpose**: Request for human approval of a RISKY action (N3 autonomy level)
+- **Expiration**: All requests must include expiration timestamp (timeout)
+- **Required fields**: version, approval_request_id, timestamp, source (must be "orion-brain"), decision_id, action_type, risk_level, requested_action, expires_at
+
+### Approval Decision (`approval_decision.schema.json`)
+- **Emitted by**: `orion-approval-telegram` or `orion-approval-cli`
+- **Purpose**: Admin decision on approval request (approve/deny/force)
+- **Admin identity**: Must include admin_identity for audit trail
+- **Expiration**: All approvals are time-limited with expires_at
+- **Mandatory reason**: Admin must provide reason for all decisions
+- **Required fields**: version, approval_id, timestamp, source, approval_request_id, decision_id, decision, admin_identity, reason, issued_at, expires_at
+
+### Approval (`approval.schema.json`) [DEPRECATED - Phase 3]
+- **Status**: Deprecated in favor of approval_request + approval_decision
+- **Migration**: Use approval_decision.schema.json for new implementations
 
 ### Outcome (`outcome.schema.json`)
 - **Emitted by**: `orion-commander` ONLY

@@ -1,0 +1,24 @@
+# ORION Admin Identity Configuration
+#
+# Defines the single ADMIN identity for the system.
+# ADMIN is the only human authority who can approve RISKY actions.
+#
+# CRITICAL: Keep this file secure. Do not commit actual credentials to git.
+
+version: "1.0"
+
+admin:
+  # Telegram admin identity (chat ID)
+  # To get your chat ID: message @userinfobot on Telegram
+  telegram_chat_id: "YOUR_TELEGRAM_CHAT_ID"
+
+  # CLI admin identity (username or UID)
+  # Use the output of `whoami` or `id -u`
+  cli_identity: "YOUR_USERNAME"
+
+# Security notes:
+# - There is exactly ONE admin in the system
+# - Any identity not matching above will be rejected
+# - No delegation, no quorum, no multi-admin
+# - Copy this file to config/admin.yaml and configure your identity
+# - Add config/admin.yaml to .gitignore

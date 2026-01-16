@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orion.internal/schemas/approval_decision/v1.schema.json",
+  "title": "ORION Approval Decision",
+  "description": "Admin decision on approval request. Emitted by orion-approval when admin approves/denies/forces action.",
+  "type": "object",
+  "required": ["version", "approval_id", "timestamp", "source", "approval_request_id", "decision_id", "decision", "admin_identity", "reason", "issued_at", "expires_at"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Schema version for backward compatibility"
+    },
+    "approval_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this approval decision"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when decision was made"
+    },
+    "source": {
+      "type": "string",
+      "pattern": "^orion-approval-(telegram|cli)$",
+      "description": "Approval module that emitted this decision"
+    },
+    "approval_request_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Request being responded to"
+    },
+    "decision_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Related decision ID"
+    },
+    "action_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Action ID if action should be executed"
+    },
+    "decision": {
+      "type": "string",
+      "enum": ["approve", "deny", "force"],
+      "description": "Admin decision: approve (allow RISKY), deny (cancel), force (bypass safety)"
+    },
+    "admin_identity": {
+      "type": "string",
+      "description": "Identity of ADMIN who made decision (Telegram chat ID or CLI user)"
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Mandatory reason for decision (audit trail)"
+    },
+    "issued_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When approval was issued"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this approval expires (always time-limited)"
+    },
+    "override_circuit_breaker": {
+      "type": "boolean",
+      "default": false,
+      "description": "If true, temporarily disable circuit breaker (only for 'force' decisions)"
+    },
+    "override_cooldown": {
+      "type": "boolean",
+      "default": false,
+      "description": "If true, temporarily disable cooldown (only for 'force' decisions)"
+    },
+    "tags": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Optional key-value tags for categorization"
+    }
+  }
+}
