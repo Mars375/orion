@@ -19,7 +19,7 @@ ORION supports **N0 (observe-only), N2 (SAFE actions), and N3 (approved RISKY ac
 - ✅ Safety mechanisms (cooldowns, circuit breaker, approval expiration)
 - ✅ 238 tests passing (all green)
 
-**Next Phase:** Phase 5 (AI Council) - Multi-model reasoning with confidence scoring
+**Next Phase:** Phase 4.1 (Bus Migration to Go) - TECHNICAL PIVOT before AI Council
 
 ## Domain Expertise
 
@@ -39,6 +39,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Hub Infrastructure** - Media, access, storage, dashboards ✅
 - [x] **Phase 3: Controlled Autonomy** - Safe actions with allowlists, cooldowns, rollback ✅
 - [x] **Phase 4: Telegram Approvals** - Risky action approval workflow ✅
+- [ ] **Phase 4.1: TECHNICAL PIVOT: Bus Migration to Go (INSERTED)** - Rewrite orion-bus in Go
 - [ ] **Phase 5: AI Council** - Multi-model reasoning with confidence scoring
 - [ ] **Phase 6: Edge Integration** - Autonomous edge devices (robot)
 - [ ] **Phase 7: Compute Expansion** - Optional worker node capacity
@@ -161,9 +162,43 @@ Plans:
 Plans:
 - [ ] 04-01: TBD during planning
 
+### Phase 4.1: TECHNICAL PIVOT: Bus Migration to Go (INSERTED)
+**Goal**: Rewrite orion-bus from Python to Go for performance, memory efficiency, and type safety
+**Depends on**: Phase 4 (Telegram Approvals)
+**Research**: Likely (Go Redis Streams client, concurrent dispatch patterns, contract validation in Go)
+**Plans**: 0 plans
+
+**Success criteria**: orion-bus rewritten in Go, all existing functionality preserved, performance and memory targets met, zero downtime migration path established
+
+**Objectives:**
+- Rewrite orion-bus in Go with Redis Streams client
+- Implement strict contract validation using Go's type system
+- Achieve sub-millisecond event routing performance
+- Minimize memory footprint (critical for Pi 5 with 16GB + LLMs)
+- High-concurrency event dispatching (prepare for AI Council load)
+- Maintain backward compatibility with existing Python consumers
+- Zero-downtime migration strategy
+- Full test coverage (unit + integration)
+
+**Rationale (TECHNICAL PIVOT):**
+- **Performance**: Phase 5 AI Council will saturate CPU with multiple LLM inference calls. Bus must handle high-concurrency event dispatching without blocking.
+- **Memory**: Pi 5 has 16GB total. LLMs are memory-intensive. Minimizing bus footprint leaves more room for AI models.
+- **Safety**: Go's type system provides compile-time guarantees for contract validation. Python's runtime validation is good, but Go eliminates entire classes of contract violations at build time.
+- **Reliability**: Long-running process with strict SLA. Go's memory model and GC behavior are more predictable under sustained load.
+
+**Migration approach:**
+- Implement Go bus alongside existing Python bus
+- Run both in parallel with event duplication
+- Validate Go bus behavior matches Python bus
+- Gradual cutover with rollback capability
+- Remove Python bus only after burn-in period
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 4.1 to break down)
+
 ### Phase 5: AI Council
 **Goal**: Multi-model reasoning with confidence scoring
-**Depends on**: Phase 4
+**Depends on**: Phase 4.1 (Bus Migration to Go)
 **Research**: Likely (AI model integration, multi-agent patterns)
 **Research topics**: Claude API, OpenAI API, multi-model orchestration, confidence scoring algorithms, embeddings for memory
 **Plans**: TBD
@@ -217,7 +252,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 0 → 0.1 → 1 → 2 → 3 → 4 → 5 → 6 → 7
+Phases execute in numeric order: 0 → 0.1 → 1 → 2 → 3 → 4 → 4.1 → 5 → 6 → 7
 
 Note: Phase 0.1 (Hardware Clean Reset) can be skipped during early development if hardware is unavailable. Phase 1 can proceed with local development environment.
 
@@ -229,6 +264,7 @@ Note: Phase 0.1 (Hardware Clean Reset) can be skipped during early development i
 | 2. Hub Infrastructure | Complete | ✅ Complete | 2026-01-15 |
 | 3. Controlled Autonomy | Complete | ✅ Complete | 2026-01-15 |
 | 4. Telegram Approvals | Complete | ✅ Complete | 2026-01-16 |
+| 4.1. Bus Migration to Go | 0/? | Not started | - |
 | 5. AI Council | 0/? | Not started | - |
 | 6. Edge Integration | 0/? | Not started | - |
 | 7. Compute Expansion | 0/? | Not started | - |

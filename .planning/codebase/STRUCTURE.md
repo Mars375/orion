@@ -1,199 +1,272 @@
-# Codebase Structure
+# Directory Structure
 
-**Analysis Date:** 2026-01-13
+## Overview
 
-## Directory Layout
+ORION follows a **modular, event-driven architecture** organized around:
+- **Core modules** (Python cognitive components): Brain, Guardian, Memory, Commander, Approval
+- **Message bus** (Redis Streams): Event transport with JSON Schema contracts
+- **Configuration & Policy**: YAML-based safety policies
+- **Testing & Planning**: Centralized test suite and phase-based planning
+
+## Top-Level Directories
 
 ```
-orion/
-├── bus/                    # Event bus & contracts (centralized)
-│   ├── README.md          # Bus philosophy
-│   └── contracts/         # JSON Schema event definitions (empty)
-├── core/                   # orion-core node (reasoning & coordination)
-│   ├── api/               # HTTP inspection API (Python, stub)
-│   ├── brain/             # Decision logic & policies (Python, stub)
-│   ├── commander/         # Action orchestration (Python, stub)
-│   └── guardian/          # Correlation & incident detection (Python, stub)
-├── deploy/                 # Infrastructure deployment
-│   ├── core/              # orion-core docker-compose (empty)
-│   ├── hub/               # orion-hub docker-compose (empty)
-│   ├── edge/              # Edge node deployment (stub)
-│   └── lab/               # Lab setup documentation (stub)
-├── edge/                   # Edge devices & autonomous agents
-│   └── freenove_hexapod/  # Hexapod robot (Raspberry Pi 4)
-├── policies/               # Safety & execution policies (YAML, all empty)
-├── docs/                   # Architecture & roadmap
-├── CLAUDE.md              # Development contract & governance rules
-├── README.md              # Project overview
-└── LICENSE                # License
+/home/orion/orion/
+├── README.md                          # Project overview
+├── CLAUDE.md                          # Development contract (CRITICAL)
+├── LICENSE
+├── requirements-test.txt              # Test dependencies
+├── pytest.ini                         # Pytest configuration
+├── .env.example                       # Environment variables template
+│
+├── core/                              # Python cognitive modules
+├── bus/                               # Event bus infrastructure
+├── tests/                             # Centralized test suite
+├── docs/                              # Architecture and phase documentation
+├── config/                            # Configuration files
+├── policies/                          # Safety and execution policies (YAML)
+├── deploy/                            # Deployment configurations
+├── edge/                              # Edge device implementations
+├── watchers/                          # System monitoring and telemetry
+└── .planning/                         # Development planning
 ```
 
-## Directory Purposes
+## Core Modules
 
-**bus/**
-- Purpose: Event bus client and contract definitions
-- Contains: Redis Streams client code (Go, not implemented), JSON Schema contracts
-- Key files:
-  - `bus/README.md` (21 lines) - Bus philosophy
-  - `bus/contracts/event.schema.json` (0 bytes, empty)
-  - `bus/contracts/incident.schema.json` (0 bytes, empty)
-  - `bus/contracts/decision.schema.json` (0 bytes, empty)
-  - `bus/contracts/action.schema.json` (0 bytes, empty)
-  - `bus/contracts/outcome.schema.json` (0 bytes, empty)
-- Subdirectories: `contracts/` for JSON Schema definitions
+Python cognitive components for reasoning, decisions, and actions:
 
-**core/**
-- Purpose: orion-core node modules (reasoning, coordination, decision-making)
-- Contains: Python modules for AI reasoning and SRE logic
-- Key files:
-  - `core/api/README.md` (0 bytes, empty stub)
-  - `core/brain/README.md` (0 bytes, empty stub)
-  - `core/commander/README.md` (0 bytes, empty stub)
-  - `core/guardian/README.md` (0 bytes, empty stub)
-- Subdirectories: Module-specific directories awaiting implementation
+```
+core/
+├── brain/                             # Decision-making engine
+│   ├── README.md
+│   ├── __init__.py
+│   ├── brain.py                       # Main decision logic
+│   ├── policy_loader.py               # SAFE/RISKY classification
+│   ├── cooldown_tracker.py            # Rate limiting
+│   └── circuit_breaker.py             # Failure protection
+│
+├── guardian/                          # Event correlation
+│   ├── README.md
+│   ├── __init__.py
+│   └── guardian.py                    # Incident detection
+│
+├── memory/                            # Long-term audit trail
+│   ├── README.md
+│   ├── __init__.py
+│   └── memory.py                      # JSONL storage
+│
+├── commander/                         # Action execution
+│   ├── README.md
+│   ├── __init__.py
+│   └── commander.py                   # Execute with rollback
+│
+├── approval/                          # Human authority (Phase 4)
+│   ├── README.md
+│   ├── __init__.py
+│   ├── admin_identity.py              # Single-admin verification
+│   └── approval_coordinator.py        # Approval tracking
+│
+├── approval-telegram/                 # Telegram bot (planned)
+│   └── README.md
+│
+└── api/                               # HTTP API (planned)
+    └── README.md
+```
 
-**deploy/**
-- Purpose: Infrastructure deployment configurations
-- Contains: Docker compose files, environment templates
-- Key files:
-  - `deploy/core/docker-compose.yml` (0 bytes, empty)
-  - `deploy/core/.env.example` (0 bytes, empty)
-  - `deploy/hub/docker-compose.yml` (0 bytes, empty)
-  - `deploy/hub/.env.example` (0 bytes, empty)
-  - `deploy/edge/README.md` (0 bytes, empty)
-  - `deploy/lab/README.md` (0 bytes, empty)
-- Subdirectories: Node-specific deployment configs
+**Module Structure Pattern**:
+Each module contains:
+- `README.md` - Purpose, inputs/outputs, invariants, failure modes
+- `__init__.py` - Public exports
+- `<module>.py` - Main implementation
+- `*_helper.py` - Supporting classes
 
-**edge/**
-- Purpose: Edge devices and autonomous agents
-- Contains: Hardware-specific code and safety rules
-- Key files:
-  - `edge/freenove_hexapod/README.md` (6 lines) - Edge node overview
-  - `edge/freenove_hexapod/safety.md` (6 lines) - Offline safety rules
-- Subdirectories: Device-specific implementations
+## Contracts
 
-**policies/**
-- Purpose: Safety and execution policies (YAML configuration)
-- Contains: Action classifications, approval rules, temporal constraints
-- Key files:
-  - `policies/actions_safe.yaml` (0 bytes, empty)
-  - `policies/actions_risky.yaml` (0 bytes, empty)
-  - `policies/approvals.yaml` (0 bytes, empty)
-  - `policies/cooldowns.yaml` (0 bytes, empty)
-- Subdirectories: None (flat structure)
+JSON Schema definitions for all inter-module communication:
 
-**docs/**
-- Purpose: Architecture documentation and roadmap
-- Contains: Design documents, phase plans, security model
-- Key files:
-  - `docs/ARCHITECTURE.md` (55 lines) - Core design invariants
-  - `docs/BUS_AND_CONTRACTS.md` (19 lines) - Event types and rules
-  - `docs/EDGE_DEVICES.md` (29 lines) - Edge node design
-  - `docs/EXTENSIBILITY.md` (10 lines) - Adding new nodes
-  - `docs/NODES.md` (29 lines) - Node types and roles
-  - `docs/ORION_BRAIN.md` (13 lines) - Decision pipeline
-  - `docs/PHASE_0_RESET.md` (8 lines) - Clean reset objective
-  - `docs/PHASE_1_ORION_HUB.md` (9 lines) - Hub deployment
-  - `docs/PHASE_2_ORION_CORE.md` (10 lines) - Core observability
-  - `docs/PHASE_3_AUTONOMY.md` (6 lines) - Safe autonomy
-  - `docs/PHASE_4_APPROVALS.md` (5 lines) - Telegram approvals
-  - `docs/PHASE_5_AI_COUNCIL.md` (5 lines) - Multi-model reasoning
-  - `docs/ROADMAP.md` (101 lines) - 7-phase execution plan
-  - `docs/RUNBOOKS.md` (8 lines) - Operational procedures (stub)
-  - `docs/SECURITY.md` (21 lines) - Zero-trust and secrets policy
-- Subdirectories: None (flat structure)
+```
+bus/
+├── README.md                          # Bus design philosophy
+├── contracts/                         # JSON Schema contracts
+│   ├── README.md                      # Contract versioning rules
+│   ├── event.schema.json              # Raw observations
+│   ├── incident.schema.json           # Correlated events
+│   ├── decision.schema.json           # Brain reasoning
+│   ├── action.schema.json             # Commands to execute
+│   ├── outcome.schema.json            # Execution results
+│   ├── approval_request.schema.json   # Approval requests (N3)
+│   ├── approval_decision.schema.json  # Approval responses
+│   └── approval.schema.json           # [DEPRECATED]
+│
+└── python/                            # Python Redis Streams client
+    ├── requirements.txt
+    └── orion_bus/
+        ├── __init__.py
+        ├── bus.py                     # Publish/subscribe
+        └── validator.py               # Contract validation
+```
 
-## Key File Locations
+## Tests
 
-**Entry Points:**
-- Not yet implemented - No source code files exist
-- Planned: `orion-brain`, `orion-guardian`, `orion-commander`, `orion-api`, `orion-approval-telegram`, `orion-bus`, `orion-edge-agent`
+Centralized test suite (238 tests, all passing):
 
-**Configuration:**
-- `CLAUDE.md` (279 lines) - Development contract and governance rules
-- `README.md` (25 lines) - Project overview
-- `.gitignore` (22 lines) - Environment files, Python cache, logs, OS/editor files
-- `deploy/*/.env.example` (0 bytes, empty templates)
+```
+tests/
+├── conftest.py                        # Global fixtures
+├── test_contracts.py                  # Contract validation (24 tests)
+├── test_bus.py                        # Event bus (18 tests)
+├── test_brain.py                      # Brain N0 mode (24 tests)
+├── test_brain_n2.py                   # Brain N2 mode (27 tests)
+├── test_commander.py                  # Action execution (15 tests)
+├── test_guardian.py                   # Event correlation (20 tests)
+├── test_memory.py                     # Memory operations (15 tests)
+├── test_approval_phase4.py            # Approval system (28 tests)
+├── test_circuit_breaker.py            # Failure protection (27 tests)
+├── test_cooldown_tracker.py           # Rate limiting (16 tests)
+├── test_policy_loader.py              # Policy loading (8 tests)
+└── test_policies.py                   # Policy consistency (17 tests)
+```
 
-**Core Logic:**
-- Not yet implemented
-- Expected locations based on CLAUDE.md:
-  - `core/brain/` - Decision logic and policy evaluation
-  - `core/guardian/` - Correlation and temporal logic
-  - `core/commander/` - Action orchestration and rollback
-  - `core/api/` - HTTP inspection endpoints
+## Policies
 
-**Testing:**
-- Not yet implemented - No test files detected
-- Test-alongside doctrine specified in `CLAUDE.md` lines 108-141
+YAML files defining execution rules and safety classifications:
 
-**Documentation:**
-- `CLAUDE.md` (279 lines) - Primary governance document
-- `docs/` directory - Architecture and phase documentation
-- Module READMEs - Mostly empty stubs awaiting implementation
+```
+policies/
+├── actions_safe.yaml                  # SAFE action allowlist
+├── actions_risky.yaml                 # RISKY action flaglist
+├── approvals.yaml                     # Approval flow rules
+└── cooldowns.yaml                     # Rate limiting windows
+```
 
-## Naming Conventions
+## Documentation
 
-**Files:**
-- Markdown: kebab-case (e.g., `orion-brain.md`, `bus-and-contracts.md`)
-- Important project files: UPPERCASE (e.g., `CLAUDE.md`, `README.md`, `LICENSE`)
-- Schemas: `{event_type}.schema.json` (e.g., `event.schema.json`, `incident.schema.json`)
-- Policies: `{category}_{classification}.yaml` (e.g., `actions_safe.yaml`, `actions_risky.yaml`)
+Architecture and phase documentation:
 
-**Directories:**
-- kebab-case for all directories
-- Module names match directory structure: `orion-brain` → `core/brain/`
-- Node types: `core/`, `hub/`, `edge/`, `deploy/`
+```
+docs/
+├── CONTEXT.md                         # Authoritative entry point (START HERE)
+├── ROADMAP.md                         # 7-phase plan
+├── ARCHITECTURE.md                    # System architecture
+├── NODES.md                           # Node roles
+├── BUS_AND_CONTRACTS.md               # Event bus design
+├── SECURITY.md                        # Security model
+├── RUNBOOKS.md                        # Operational procedures
+├── PHASE_*.md                         # Phase specifications
+└── [other design docs]
+```
 
-**Special Patterns:**
-- Phase documents: `PHASE_{N}_{NAME}.md` (e.g., `PHASE_2_ORION_CORE.md`)
-- Environment templates: `.env.example` (gitignored actual `.env` files)
-- Contract schemas: `*.schema.json` in `bus/contracts/`
+## Configuration
 
-## Where to Add New Code
+```
+config/
+└── admin.yaml.example                 # Admin identity template
+```
 
-**New Module:**
-- Primary code: `core/{module-name}/` for Python, `bus/` or edge location for Go
-- Contracts: `bus/contracts/{event-type}.schema.json`
-- Tests: Co-located with source (test-alongside per `CLAUDE.md`)
-- Documentation: Module README with purpose, inputs/outputs, invariants, failure modes
+## Deployment
 
-**New Policy:**
-- Implementation: `policies/{category}_{type}.yaml`
-- Documentation: Reference in `docs/ARCHITECTURE.md` or module README
+Deployment configurations for all nodes:
 
-**New Edge Device:**
-- Implementation: `edge/{device-name}/`
-- Safety rules: `edge/{device-name}/safety.md`
-- Deployment: `deploy/edge/{device-name}/`
+```
+deploy/
+├── ARCHITECTURE.md                    # Deployment architecture
+├── INTEGRATION.md                     # Integration guide
+├── STORAGE.md                         # Storage configuration
+│
+├── core/                              # Core node deployment
+│   ├── .env.example
+│   └── docker-compose.yml
+│
+├── hub/                               # Hub node (docker-compose)
+│   ├── .env.example
+│   └── docker-compose.yml             # Media stack
+│
+├── edge/                              # Edge node deployment
+│   └── README.md
+│
+└── lab/                               # Local lab setup
+    ├── docker-compose.monitoring.yml  # Prometheus, Grafana
+    ├── docker-compose.orion.yml       # Full ORION stack
+    └── prometheus.yml
+```
 
-**New Contract:**
-- Schema: `bus/contracts/{event-type}.schema.json`
-- Version: Schemas are versioned, backward compatibility required
-- Documentation: Update `docs/BUS_AND_CONTRACTS.md`
+## Edge Devices
 
-**Utilities:**
-- Not yet established - No utility pattern exists
-- Future: Module-specific utilities within module directories (no shared utilities)
+```
+edge/
+└── freenove_hexapod/                  # Hexapod robot integration
+    ├── safety.md                      # Safety constraints
+    └── README.md
+```
 
-## Special Directories
+## Watchers
 
-**.planning/codebase/**
-- Purpose: Codebase mapping documents (this analysis)
-- Source: Generated by `/gsd:map-codebase` command
-- Committed: Yes (reference documentation)
+System monitoring and telemetry:
 
-**policies/**
-- Purpose: Safety policy configuration (YAML)
-- Source: Manual definitions of SAFE/RISKY classifications
-- Committed: Yes (explicit rules required per `CLAUDE.md`)
+```
+watchers/
+├── system_resources.py                # CPU, memory, disk watchers
+└── requirements.txt
+```
 
-**bus/contracts/**
-- Purpose: Event schema definitions (JSON Schema)
-- Source: Versioned contract definitions
-- Committed: Yes (single source of truth for module boundaries)
+## Planning
+
+Development planning and progress tracking:
+
+```
+.planning/
+├── STATE.md                           # Current project state
+├── ROADMAP.md                         # Execution roadmap
+│
+├── codebase/                          # Codebase documentation
+│   ├── STACK.md                       # Technology stack
+│   ├── ARCHITECTURE.md                # System architecture
+│   ├── STRUCTURE.md                   # Directory structure (this file)
+│   ├── CONVENTIONS.md                 # Coding conventions
+│   ├── TESTING.md                     # Testing approach
+│   ├── INTEGRATIONS.md                # External integrations
+│   └── CONCERNS.md                    # Technical debt and risks
+│
+└── phases/                            # Phase-specific planning
+    ├── 00-foundation-governance/
+    ├── 00.1-hardware-clean-reset/
+    ├── 01-core-observability/
+    ├── 02-hub-infrastructure/
+    ├── 03-controlled-autonomy/
+    ├── 04-telegram-approvals/
+    ├── 05-ai-council/
+    ├── 06-edge-integration/
+    └── 07-compute-expansion/
+```
+
+## Notes
+
+### Critical Files for Development
+
+**Essential Reading (In Order)**:
+1. `CLAUDE.md` - Development contract (READ THIS FIRST)
+2. `docs/CONTEXT.md` - Authoritative project entry point
+3. `README.md` - Project overview
+4. `bus/contracts/README.md` - Contract philosophy
+5. Module READMEs - Each module's purpose and invariants
+
+### Key Directories
+
+- `bus/contracts/` - JSON schemas (version 1.0)
+- `policies/` - SAFE/RISKY classifications
+- `tests/` - All test code (238 tests)
+- `core/` - ORION modules
+- `deploy/` - Infrastructure configurations
+- `.planning/` - Development planning and progress
+
+### Directory Conventions
+
+1. **Module-scoped branches**: `module/<module-name>`
+2. **One module per branch**: No cross-module changes
+3. **README in every module**: Documenting purpose, inputs, outputs, invariants
+4. **Contracts before code**: JSON Schemas are source of truth
+5. **Tests alongside code**: Features implemented with tests
 
 ---
 
-*Structure analysis: 2026-01-13*
-*Update when directory structure changes*
+This structure reflects ORION's core principle: **contracts define truth, modules are citizens, violations are rejected**.

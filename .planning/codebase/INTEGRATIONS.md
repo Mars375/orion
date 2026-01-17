@@ -1,126 +1,373 @@
 # External Integrations
 
-**Analysis Date:** 2026-01-13
+## Message Bus
 
-## APIs & External Services
+### Redis Streams
+**Status**: Active, implemented in Phase 1
 
-**Telegram Bot API:**
-- Purpose: Human-in-the-loop approvals for risky autonomous actions
-- Module: `orion-approval-telegram` (Python, not yet implemented)
-- Auth: Bot token (stored in environment variables)
-- Mandatory: Required for N3 autonomy level per `docs/SECURITY.md`
-- Time-limited: Approvals expire, full audit trail required
+**Role**: Central event bus for all module-to-module communication
 
-**No other external APIs detected**
+**Connection**:
+- Endpoint: `localhost:6379` (localhost only)
+- Client library: `redis==5.0.1` (Python)
+- Port: `127.0.0.1:6379:6379`
 
-## Data Storage
+**Configuration** (docker-compose):
+- Persistent storage with AOF enabled
+- `appendfsync everysec` for durability
+- Dangerous commands disabled (FLUSHDB, FLUSHALL, CONFIG)
+- Data: `/mnt/orion-data/orion/redis`
 
-**Redis Streams:**
-- Purpose: Core event bus for inter-module communication
-- Connection: Via environment variables (not yet configured)
-- Client: `orion-bus` (Go module, not yet implemented)
-- Event types: Observation, Incident, Decision, Action, Outcome per `docs/BUS_AND_CONTRACTS.md`
-- Rules: Events immutable, schemas versioned, decisions auditable
+**Streams**:
+- `event` - Raw observations
+- `incident` - Correlated events
+- `decision` - Decisions from Brain
+- `approval_request` - Approval requests (N3)
+- `approval_decision` - Approval responses
+- `action` - Action execution proposals
+- `outcome` - Execution results
 
-**Database:**
-- Type: Not specified
-- Purpose: State storage, memory, post-mortems (implied)
-- Module: `orion-memory` (Python, not yet implemented)
+**Usage**: All cross-module communication flows through Redis Streams with contract validation
 
-**File Storage:**
-- Not detected
+## Communication
 
-## Authentication & Identity
+### Telegram Bot Integration
+**Status**: Designed (not implemented)
 
-**Tailscale:**
-- Purpose: Zero-trust networking for all ORION nodes per `docs/SECURITY.md`
-- Implementation: Mandatory, no open inbound ports
-- Policy: Explicit ACLs, identity per node
-- Configuration: Not yet defined in deployment files
+**Planned for N3 mode**: Approval requests via Telegram
 
-**Auth Provider:**
-- Not applicable - System-to-system authentication only via Tailscale
+**Module**: `orion-approval-telegram`
+- Sends approval requests to authorized users
+- Collects approval/deny responses
+- Enforces timeouts (explicit expiration)
+- Emits approval decision contracts
+- Strict authorization (configured admin only)
 
-## Monitoring & Observability
+**Flow**:
+1. Brain emits approval request
+2. Telegram module sends message to admin
+3. Admin approves/denies via bot
+4. Module emits approval_decision contract
+5. Commander validates and executes/rejects
 
-**Prometheus:**
-- Purpose: Metrics collection per `docs/ARCHITECTURE.md`
-- Integration: Planned but not configured
-- Retention: Not specified
+**Note**: Phase 4 supports approval coordinator but telegram integration is future work
 
-**Loki:**
-- Purpose: Log aggregation per `docs/ARCHITECTURE.md`
-- Integration: Planned but not configured
-- Retention: Not specified
+## Storage
 
-**Error Tracking:**
-- Not configured
-- Audit trail: Mandatory for all decisions and actions per `CLAUDE.md`
+### Persistent Storage (HDD)
+**Status**: Fully designed, documented, not deployed
 
-**Analytics:**
-- Not applicable (internal SRE system)
+**Layout** (`/mnt/orion-data`):
+```
+/mnt/orion-data/
+├── media/                  # Media library
+│   ├── movies/
+│   ├── tv/
+│   └── music/
+├── downloads/              # Download staging
+│   ├── complete/
+│   └── incomplete/
+├── config/                 # Service configurations
+│   ├── jellyfin/
+│   ├── radarr/
+│   ├── sonarr/
+│   ├── prometheus/
+│   └── grafana/
+├── logs/                   # Centralized logs
+│   ├── media/
+│   ├── monitoring/
+│   └── orion/
+└── orion/                  # ORION state
+    ├── memory/             # Audit trail (JSONL)
+    └── redis/              # Event bus persistence
+```
 
-## CI/CD & Deployment
+**Critical Rules**:
+- **HDD ONLY**: All persistent data on HDD
+- **No SD Writes**: SD cards for OS only
+- **Fail Closed**: If HDD unavailable, services fail to start
 
-**Hosting:**
-- Platform: Docker containers on physical hardware (homelab)
-- Nodes: orion-core, orion-hub, orion-edge
-- Deployment: `deploy/core/docker-compose.yml`, `deploy/hub/docker-compose.yml` (empty)
-- Environment vars: Not yet configured
+**Permissions**:
+- Owner: `orion:orion` (UID:GID 1000:1000)
+- Media dirs: `755`
+- Config dirs: `700`
+- Logs: `755`
+- ORION data: `700`
 
-**CI Pipeline:**
-- Not configured
-- Expected: Git hooks for conventional commits, branch naming enforcement per `CLAUDE.md`
-- Testing: Test-alongside doctrine, contract validation required
+## Monitoring
 
-## Edge & IoT Integration
+### Prometheus (Metrics Collection)
+**Status**: Documented, observe-only configured
 
-**MQTT:**
-- Purpose: Edge telemetry and commands per `docs/ARCHITECTURE.md`
-- Client: `orion-edge-agent` (Go, not yet implemented)
-- Topics: Not specified
-- QoS: Not specified
-- Offline behavior: Edge nodes must operate autonomously per `edge/freenove_hexapod/safety.md`
+**Endpoint**: `http://localhost:9090`
 
-**Robot Hardware:**
-- Device: Freenove Hexapod on Raspberry Pi 4 Model B
-- Location: `edge/freenove_hexapod/`
-- Safety: Default to stop, loss of network → safe mode, no destructive commands without approval
+**Configuration**:
+- No alertmanager
+- No alert rules
+- Metrics collection only
+- TSDB retention: 30 days or 10GB
+- Storage: `/mnt/orion-data/config/prometheus/data`
 
-## Environment Configuration
+**Scraped Metrics**:
+- `prometheus` (self-monitoring)
+- `node` (node-exporter port 9100)
+- `cadvisor` (container metrics port 8081)
+- `redis` (event bus port 6379)
 
-**Development:**
-- Required env vars: Not documented (`.env.example` files empty)
-- Secrets location: `.env` files (gitignored per `.gitignore`)
-- Mock/stub services: Redis, MQTT, Telegram per `CLAUDE.md` testing doctrine
+**ORION Integration**: Queries Prometheus API, emits events to Redis based on metric values. NO alertmanager feedback loop.
 
-**Staging:**
-- Not defined
+**Pattern**:
+```
+Poll Prometheus → Detect anomaly → Emit event → Guardian correlates → Brain decides
+```
 
-**Production:**
-- Secrets management: Environment files, backed up encrypted per `docs/SECURITY.md`
-- Failover/redundancy: Not specified
-- Edge resilience: Devices must survive core node failure
+### Grafana (Dashboards)
+**Status**: Documented, observe-only
 
-## Webhooks & Callbacks
+**Endpoint**: `http://localhost:3000`
 
-**Incoming:**
-- Telegram webhook: For approval responses (planned but not implemented)
-- MQTT messages: From edge devices
+**Configuration**:
+- Admin user: `admin` / password: `orion`
+- Analytics disabled
+- Sign-up disabled
+- No alert notifications
+- Storage: `/mnt/orion-data/config/grafana`
 
-**Outgoing:**
-- Telegram notifications: For risky action approval requests
-- MQTT commands: To edge devices
+**Purpose**: Human observation only, no alerting or automation
 
-## Communication Protocols
+### Node Exporter (System Metrics)
+**Endpoint**: `http://node-exporter:9100`
 
-**No cross-language imports:**
-- All modules communicate via Redis Streams events
-- Contracts defined in `bus/contracts/*.json` (empty files)
-- No shared memory, shared volumes, or implicit state
-- HTTP only for explicit human-facing or inspection APIs (never internal control flow)
+**Exposed Metrics**:
+- CPU, memory, disk usage
+- Network statistics
+- Process information
+- Filesystem metrics
+
+### cAdvisor (Container Metrics)
+**Endpoint**: `http://cadvisor:8080` (published to `8081:8080`)
+
+**Exposed Metrics**:
+- Per-container CPU/memory/network/disk
+- Container lifecycle events
+
+## Hardware
+
+### Freenove Hexapod Robot
+**Status**: Planned for Phase 6
+
+**Location**: `edge/freenove_hexapod/`
+
+**Safety Rules**:
+- Default to stop
+- Loss of network → safe mode
+- No destructive commands without approval
+
+**Planned Integration**:
+- Edge device operates offline-first
+- MQTT for telemetry
+- Edge agent sends telemetry to ORION
+- ORION never controls edge directly
+- Edge must function without ORION
+
+## APIs and Protocols
+
+### HTTP Endpoints (Inspection Only)
+**Status**: Designed for future phases
+
+**Module**: `orion-api`
+
+**Characteristics**:
+- Read-only inspection
+- Authentication required
+- Rate limiting enforced
+- NO write operations
+- NO side effects
+
+**Example Endpoints** (not implemented):
+- `GET /incidents`
+- `GET /decisions`
+- `GET /actions`
+- `GET /health`
+
+### JSON Schema Validation
+**Status**: Active in all communication
+
+**Contract Schemas** (`bus/contracts/`):
+- `event.schema.json`
+- `incident.schema.json`
+- `decision.schema.json`
+- `approval_request.schema.json`
+- `approval_decision.schema.json`
+- `action.schema.json`
+- `outcome.schema.json`
+
+**Validation**: All messages validated at bus boundary
+
+## Media Stack (Opaque to ORION)
+
+### Services on orion-hub
+**Status**: Documented configurations available
+
+**Note**: ORION observes metrics only, does NOT control these services
+
+**Services** (`deploy/hub/docker-compose.yml`):
+- **Jellyfin** (8096) - Media server
+- **Radarr** (7878) - Movie management
+- **Sonarr** (8989) - TV management
+- **Prowlarr** (9696) - Indexer manager
+- **qBittorrent** (8080) - Torrent client
+
+**Integration**: Prometheus scrapes container metrics, ORION queries Prometheus, emits observation events. No direct control.
+
+## Planned Integrations (Future Phases)
+
+### Phase 5: AI Council
+**Vision**: Multiple LLM models evaluate decisions together
+- Multi-model reasoning
+- Confidence scoring
+- Model critique
+
+**Questions**:
+- External LLM APIs? (OpenAI, Claude)
+- Local model serving (Ollama)?
+- Voting/consensus mechanism?
+
+### Phase 6: Edge Integration
+**Planned Systems**:
+- MQTT telemetry from edge devices
+- Edge agent autonomy (offline-first)
+- Hexapod robot control
+- Sensor integration
+
+**Pattern**:
+```
+Edge Device (MQTT) → ORION Bus → Guardian → Brain → Commander
+```
+
+### Phase 7: Compute Expansion
+**Planned Workers**:
+- Optional GPU compute nodes
+- Worker pool coordination
+- Task distribution
+
+## Integration Patterns
+
+### Event-Driven Architecture
+**Core Pattern**: All integration flows through Redis Streams
+
+```
+External System
+    ↓
+Module (Observer/Emitter)
+    ↓
+Event Contract (validated)
+    ↓
+Redis Streams
+    ↓
+Consumer Module
+    ↓
+Decision/Action/Outcome
+```
+
+### Contract-First Design
+**Principle**: Contracts define the integration contract
+
+**Flow**:
+1. Define schema (what data moves)
+2. Validate messages against schema
+3. Reject invalid messages
+4. Producers emit facts, consumers reason
+
+### Observe-Only Pattern (N0 Mode)
+**Current deployment model**
+
+```
+Prometheus → Query → ORION Watcher → Event → Redis → Guardian → Brain
+                                                          ↓
+                                                   Decisions: NO_ACTION
+```
+
+### Safety-Gate Pattern (N2/N3 Mode)
+**For future autonomous execution**
+
+```
+Event → Guardian → Brain → Approve (N3) → Commander → Outcome
+                     ↓ (safety gates)
+                  Policies
+                  Cooldowns
+                  Circuit breaker
+                  Approval (N3)
+```
+
+## Notes
+
+### Current State
+
+**Integrated**:
+- Redis Streams (event bus)
+- Prometheus (metrics observation)
+- Docker/containers (cAdvisor metrics)
+- File system storage (JSONL audit)
+- System resources (psutil)
+
+**NOT Integrated**:
+- Telegram (designed, not implemented)
+- LLMs (Phase 5)
+- MQTT (Phase 6)
+- Direct Docker control (disabled)
+- External webhooks
+- Kubernetes
+
+### Integration Principles (from CLAUDE.md)
+
+1. **No shared memory**: All interaction via explicit contracts
+2. **No implicit behavior**: Defaults explicitly documented and safe
+3. **Contract validation**: Every message validated at boundaries
+4. **Fail closed**: Missing dependencies cause failures
+5. **No coupling**: Modules replaceable without affecting others
+
+### Safety Constraints
+
+**ORION NEVER**:
+- Restarts services (without approval in N3)
+- Kills processes
+- Scales containers
+- Deletes files
+- Modifies configurations
+- Executes shell commands
+- Controls hardware directly
+- Sends notifications autonomously
+
+**ORION ONLY**:
+- Observes metrics
+- Emits observation events
+- Correlates events
+- Makes decisions (within autonomy level)
+- Executes SAFE actions (N2+)
+- Requests approvals (N3)
+- Stores audit trail
+
+### Operational Considerations
+
+**Deployment**: Manual via docker-compose
+- No auto-deploy scripts
+- No orchestration tools
+- No Kubernetes
+
+**Observability**: Human-centric
+- Prometheus for metrics
+- Grafana for dashboards
+- JSONL audit trail
+- No automated alerting
+
+**Resilience**: Fail-safe design
+- ORION down = infrastructure unaffected
+- Media stack independent
+- Monitoring independent
+- Human can always intervene
 
 ---
 
-*Integration audit: 2026-01-13*
-*Update when adding/removing external services*
+**Document Generated**: Analysis of Phases 0-4 (complete through N3 autonomy)
+**Future Phases**: Phase 5-7 concepts outlined but not yet implemented

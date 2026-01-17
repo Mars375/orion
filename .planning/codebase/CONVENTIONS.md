@@ -1,191 +1,419 @@
 # Coding Conventions
 
-**Analysis Date:** 2026-01-13
+## Overview
 
-## Naming Patterns
+ORION emphasizes **safety**, **SRE principles**, and **controlled intelligence**. All code follows strict conventions ensuring readability, auditability, and safety under autonomous execution.
 
-**Files:**
-- Module READMEs: Single file per module directory (e.g., `core/brain/README.md`)
-- Markdown docs: kebab-case (e.g., `orion-brain.md`, `bus-and-contracts.md`)
-- Important project files: UPPERCASE (e.g., `CLAUDE.md`, `README.md`, `LICENSE`)
-- Schemas: `{event_type}.schema.json` (e.g., `event.schema.json`, `incident.schema.json`)
-- Policies: `{category}_{classification}.yaml` (e.g., `actions_safe.yaml`, `actions_risky.yaml`)
-
-**Functions:**
-- Not yet implemented - No source code exists
-- Expected: Python snake_case, Go camelCase per language conventions
-
-**Variables:**
-- Not yet implemented
-- Expected: Python snake_case, Go camelCase
-
-**Types:**
-- Type hints mandatory everywhere (Python and Go) per `CLAUDE.md` lines 209-212
-- Use dataclasses, TypedDict, pydantic for Python type definitions
-- No untyped public functions allowed
-
-**Modules:**
-- Module names: kebab-case with `orion-` prefix (e.g., `orion-brain`, `orion-bus`, `orion-guardian`)
-- Directory structure mirrors module names: `orion-brain` → `core/brain/`
+**Language Mix**: Python (reasoning, policies, decisions) + Go (reliability, performance, services)
 
 ## Code Style
 
-**Formatting:**
-- Not yet configured - No .prettierrc, .eslintrc, or similar config files
-- Expected: Follow language defaults (PEP 8 for Python, gofmt for Go)
+### Python
+- **Style Guide**: PEP 8
+- **Line length**: 79 chars for code, 99 for docs
+- **Indentation**: 4 spaces (never tabs)
+- **String quotes**: Double quotes (`"string"`)
+- **Imports**: Three groups (stdlib, third-party, local) with blank lines between
 
-**Linting:**
-- Not configured
-- Expected: Python linters (pylint, flake8), Go linters (golint, staticcheck)
+**Example Import Organization**:
+```python
+import json
+import logging
+from datetime import datetime, timezone
+from typing import Dict, Any, Optional
 
-**Type Enforcement:**
-- Type hints mandatory everywhere per `CLAUDE.md` lines 209-212
-- Runtime validation required for module boundaries per `CLAUDE.md` lines 214-218
+import redis
+from jsonschema import ValidationError
 
-## Import Organization
+from bus.python.orion_bus import EventBus
+from .policy_loader import PolicyLoader
+```
 
-**Order:**
-- Not yet defined - No source code to analyze
-- Expected: Standard library, third-party, local modules (Python), standard import grouping (Go)
+**Logging Standards**:
+- Module-level logger: `logger = logging.getLogger(__name__)`
+- Log levels: DEBUG (flow), INFO (events), WARNING (recoverable), ERROR (failures)
+- Include context in all log statements
+- Use `exc_info=True` for exceptions
 
-**Grouping:**
-- No cross-language imports allowed per `CLAUDE.md`
-- All inter-module communication via Redis Streams events
-- HTTP only for explicit human-facing APIs (never internal control flow)
+### Go
+- Use `gofmt` for formatting
+- Exported: PascalCase
+- Unexported: camelCase
+- Constants: UPPER_SNAKE_CASE
 
-**Path Aliases:**
-- Not configured
+## Naming Conventions
+
+### Modules & Directories
+**Pattern**: `orion-<module-name>` with hyphenated names
+- `/core/brain/` → `orion-brain`
+- `/core/guardian/` → `orion-guardian`
+- `/core/approval/` → `orion-approval`
+
+### Classes
+**Pattern**: PascalCase for all classes
+- `Brain`, `Guardian`, `ApprovalCoordinator`, `EventBus`, `CooldownTracker`, `CircuitBreaker`
+
+### Functions & Methods
+**Pattern**: snake_case for all functions
+- Private: Prefix with underscore (`_calculate_fingerprint()`)
+- Public: No prefix (`handle_incident()`, `decide()`)
+
+### Variables & Constants
+- Local variables: snake_case (`action_type`, `approval_timeout`)
+- Instance variables: snake_case (`self.autonomy_level`)
+- Constants: UPPER_SNAKE_CASE (`FAILURE_THRESHOLD = 3`)
+- Protected data: Prefix with underscore (`self._event_buffer`)
+
+**Special Rules**:
+- Contract types omit `.schema.json` suffix (File: `decision.schema.json`, Code: `contract_type="decision"`)
+- Autonomy levels: Uppercase (`N0`, `N2`, `N3`)
+
+## Documentation Standards
+
+### Module Docstrings
+**Required for**: All modules
+
+**Format**:
+```python
+"""
+<One-line summary>.
+
+<Detailed purpose and context if complex.>
+"""
+```
+
+### Class Docstrings
+**Required for**: All public classes
+
+**Format**:
+```python
+class ClassName:
+    """
+    Brief description of class purpose.
+
+    Longer explanation of responsibilities and key invariants.
+    
+    Invariants:
+    - Specific guarantee 1
+    - Specific guarantee 2
+    """
+```
+
+### Function/Method Docstrings
+**Required for**:
+- Public functions and methods
+- Anything that makes decisions, triggers actions, or changes state
+- Safety-critical logic
+
+**Format**: NumPy-style with Args, Returns, Raises
+
+```python
+def decide(self, incident: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Make decision about incident.
+
+    Args:
+        incident: Incident from guardian
+
+    Returns:
+        Decision contract
+
+    Raises:
+        ValidationError: If incident invalid
+    """
+```
+
+### Comments
+**Philosophy**: Comments explain WHY, never WHAT
+
+**Allowed**:
+- Safety guards and justification
+- Threshold choices
+- Why something is NOT done
+
+**Forbidden**:
+- Repeating code logic
+- TODO without context
+- FIXME without explanation
+
+### README Standards
+**Required for**: Every module
+
+**Structure**:
+1. Module name and language
+2. Phase status
+3. Purpose (1 paragraph max)
+4. Inputs (Contracts Consumed)
+5. Outputs (Contracts Emitted)
+6. Invariants (MUST Always Hold)
+7. Failure Modes
+8. Explicit Non-Responsibilities
+
+## Type Safety
+
+### Type Hints
+**Mandatory everywhere** - Python and Go
+
+**Python Pattern**:
+```python
+from typing import Dict, Any, Optional, List, Callable
+
+def handle_incident(self, incident: Dict[str, Any]) -> None:
+    """Handle incoming incident."""
+
+def decide(self, incident: Dict[str, Any]) -> Dict[str, Any]:
+    """Make decision about incident."""
+```
+
+### Type Validation
+**Required for**:
+- Anything crossing module boundaries
+- Input from: Redis Streams, MQTT, Telegram, external APIs
+
+**Pattern**:
+```python
+from jsonschema import ValidationError
+
+def validate(self, message: Dict[str, Any], schema_name: str) -> None:
+    """Validate message against schema."""
+    if schema_name not in self._validators:
+        raise ValueError(f"Unknown schema: {schema_name}")
+    
+    validator = self._validators[schema_name]
+    validator.validate(message)
+```
 
 ## Error Handling
 
-**Patterns:**
-- Conservative by default: Inaction preferred to risky action per `CLAUDE.md`
-- Explicit rules required: No automation without explicit rules, evidence, auditability
-- Dry-run by default: New behavior starts as N0 (observe-only)
+### Exception Patterns
 
-**Error Types:**
-- Edge safety: Default to stop, network loss → safe mode per `edge/freenove_hexapod/safety.md`
-- Approval expiration: Risky actions time-limited per `docs/SECURITY.md`
+**Pattern 1: Explicit Rejection**:
+```python
+if autonomy_level not in ("N0", "N2", "N3"):
+    raise ValueError(f"Only N0, N2, and N3 modes supported, got: {autonomy_level}")
+```
 
-## Logging
+**Pattern 2: Validation Errors**:
+```python
+try:
+    self.validator.validate(message, schema_name)
+except ValidationError as e:
+    raise ValidationError(f"Message doesn't match contract: {e}")
+```
 
-**Framework:**
-- Loki for log aggregation per `docs/ARCHITECTURE.md` (not configured)
+**Pattern 3: Safety-Critical Errors (Escalate)**:
+```python
+def _escalate_timeout(self, request: Dict[str, Any]) -> None:
+    """
+    Escalate timed-out approval request.
+    NEVER executes action on timeout.
+    """
+    logger.error(
+        f"ESCALATION: Approval request {request_id} timed out. "
+        f"Action NOT executed. Human unavailable, system in safe inaction."
+    )
+```
 
-**Patterns:**
-- Audit trail mandatory for all decisions and actions per `CLAUDE.md`
-- Full audit trail for approvals per `docs/SECURITY.md`
+## Module Structure
 
-## Comments
+### Standard Module Layout
+```
+orion-brain/
+├── __init__.py              # Public exports
+├── brain.py                 # Main class
+├── policy_loader.py         # Helpers
+├── cooldown_tracker.py      # Helpers
+├── circuit_breaker.py       # Helpers
+└── README.md                # Module documentation
+```
 
-**When to Comment:**
-- Comments explain **WHY**, never **WHAT** per `CLAUDE.md` lines 204-207
-- Example forbidden: `# increment counter` above `counter += 1`
-- Allowed: Explaining safety guards, threshold choices, temporal windows, why something is NOT done
+### Module `__init__.py` Pattern
+```python
+"""ORION Brain - Decision making."""
 
-**Docstrings:**
-- Required for: Public functions, classes, module entry points per `CLAUDE.md` lines 195-202
-- Required for: Anything that makes decisions, triggers actions, changes state, or enforces safety
-- Style: Short, precise, focus on what/why/constraints
-- Not required for: Trivial getters, obvious transformations, private helpers with clear intent
+from .brain import Brain
 
-**Module READMEs:**
-- Every module must have README containing per `CLAUDE.md` lines 230-236:
-  - Purpose (1 paragraph max)
-  - Inputs / outputs
-  - Invariants
-  - Failure modes
-  - What the module explicitly does NOT do
+__all__ = ["Brain"]
+```
 
-**ADRs (Architecture Decision Records):**
-- Write only when per `CLAUDE.md` lines 224-228:
-  - Changing a safety invariant
-  - Changing autonomy level
-  - Changing execution rules
-  - Introducing architectural coupling
-  - Changing how decisions are made
-- Do not write for: refactoring, bug fixes, performance improvements, adding tests
+## Testing Doctrine
 
-## Function Design
+### Test File Organization
+**Pattern**: `tests/test_<module>.py` mirrors `core/<module>/<module>.py`
 
-**Size:**
-- Keep code auditable and explainable per `CLAUDE.md`
-- Code must be explainable to an auditor
+### Test Markers
+```python
+@pytest.mark.unit              # Fast tests, no external deps
+@pytest.mark.integration       # May use Redis/MQTT mocks
+@pytest.mark.contract          # Schema compliance
+@pytest.mark.policy            # SAFE/RISKY classification
+@pytest.mark.slow              # Tests taking > 1 second
+```
 
-**Parameters:**
-- Not yet defined - No source code exists
+### Fixtures
+**Shared fixtures in `tests/conftest.py`**:
+```python
+@pytest.fixture
+def valid_incident_v1()         # Valid incident contract
+def redis_client()              # fakeredis.FakeRedis()
+def event_bus()                 # EventBus with test contracts
+```
 
-**Return Values:**
-- Not yet defined
+### Test Naming
+**Format**: `test_<behavior>_<condition>`
 
-## Module Design
-
-**Exports:**
-- No cross-language imports per `CLAUDE.md`
-- No shared memory, volumes, or implicit state between modules
-- All communication via Redis Streams events with JSON Schema validation
-
-**Barrel Files:**
-- Not applicable - Modules communicate via event bus, not imports
-
-**Module Boundaries:**
-- Validated against `bus/contracts/*.json` schemas per `CLAUDE.md` lines 111-115
-- Mandatory runtime validation for: Redis Streams, MQTT, Telegram, external APIs
-- Type hints insufficient - external input must be validated
+**Examples**:
+- `test_brain_always_decides_no_action_in_n0_mode`
+- `test_risky_action_is_never_executed_without_approval`
+- `test_cooldown_prevents_rapid_repeated_execution`
 
 ## Git Workflow
 
-**Branch Naming:**
-- Module-scoped branches: `module/<module-name>` per `CLAUDE.md` lines 155-157
-- Examples: `module/orion-brain`, `module/orion-bus`, `module/orion-guardian`
-- Forbidden: Touching multiple modules in one branch
+### Branch Naming
+**Pattern**: `module/<module-name>`
+- `module/orion-brain`
+- `module/orion-guardian`
+- `module/orion-approval`
 
-**Commits on Branches:**
-- Commit freely with descriptive messages during development
-- No strict format required on feature branches
+**Rules**:
+- One module per branch (strict)
+- No cross-module changes
 
-**Commits on Main:**
-- All merges are squash merges per `CLAUDE.md` lines 167-172
-- Format: `<type>(<module>): <summary>`
-- Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`
-- Examples from history:
-  - `docs(governance): add CLAUDE.md development contract`
-  - `chore: initial ORION architecture, PRD, ADR, and repository layout`
+### Commits on Main (Squash Merge)
+**Format**: Conventional Commits
+```
+<type>(<scope>): <subject>
 
-**Merge Requirements:**
-- All tests pass locally
-- Contract validations pass
-- Module README updated if behavior changed
-- No TODOs remain in safety-critical paths
+<optional body>
 
-## Safety & Governance
+Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
+```
 
-**Three Pillars (CLAUDE.md lines 41-69):**
-1. **Conservative by default**: When uncertain, choose safer option; capability secondary to safety
-2. **Ask first**: Before autonomy changes, safety classification changes, scope expansion
-3. **Dry-run by default**: New behavior starts N0 (observe-only); progression: Observe → Dry-run → Restricted → Full
+**Types**: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`
 
-**Autonomy Levels:**
-- **N0**: Observe only, no action (default for all new behavior)
-- **N1**: Suggest actions, human executes
-- **N2**: Execute SAFE actions, suggest RISKY
-- **N3**: Execute with approval flow for RISKY
-- Promotion requires explicit approval and evidence
+**Example**:
+```
+feat(brain): add N2 autonomy with policy enforcement
 
-**Testing Doctrine (CLAUDE.md lines 105-141):**
-- Test-alongside: Write tests as part of implementation, not before or after
-- No test, no ship: Untested code cannot trigger actions
-- Manual testing doesn't count toward shipping tests
-- Contract validation required: Valid contract, invalid contract, backward-compatible version
+Implement decision-making for N2 with policy-based classification.
+- Add PolicyLoader for SAFE/RISKY classification
+- Add CooldownTracker to prevent rapid repeated execution
+- Add CircuitBreaker to stop failure cascades
 
-**What Claude Must Never Do:**
-- Remove or weaken guardrails without explicit ADR
-- Auto-enable behavior because "it seems safe"
-- Silently expand scope
-- Optimize away approvals
-- Treat uncertainty as acceptable risk
+Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
+```
 
----
+## Safety-Critical Code Patterns
 
-*Convention analysis: 2026-01-13*
-*Update when patterns change*
+### Fail Closed Pattern
+```python
+if classification == "UNKNOWN":
+    # Unknown actions treated as RISKY (fail closed)
+    return self._create_decision(
+        decision_type="NO_ACTION",
+        reasoning=f"Action {action_type} classification unknown. Treating as RISKY.",
+        safety_classification="UNKNOWN",
+    )
+```
+
+### Explicit Reasoning Pattern
+```python
+def _generate_reasoning_n0(self, incident: Dict[str, Any]) -> str:
+    """Generate reasoning for NO_ACTION decision in N0 mode."""
+    incident_type = incident.get("incident_type", "unknown")
+    severity = incident.get("severity", "unknown")
+    
+    reasoning = (
+        f"N0 mode (observe only): Detected {incident_type} "
+        f"(severity={severity}). No action taken as per N0 policy."
+    )
+    
+    return reasoning  # Minimum 10 characters enforced by contract
+```
+
+### Timeout and Escalation Pattern
+```python
+def check_expired_approvals(self) -> None:
+    """Check for expired approval requests and escalate."""
+    now = datetime.now(timezone.utc)
+    expired = []
+    
+    for request_id, request in self.pending_approvals.items():
+        expires_at = datetime.fromisoformat(request["expires_at"])
+        if now >= expires_at:
+            expired.append(request_id)
+    
+    for request_id in expired:
+        request = self.pending_approvals[request_id]
+        self._escalate_timeout(request)  # NEVER execute on timeout
+        del self.pending_approvals[request_id]
+```
+
+## Common Mistakes to Avoid
+
+1. **Implicit Defaults**: Always validate and raise errors
+2. **Silent Failures**: Always log exceptions
+3. **Missing Type Hints**: All functions must have type hints
+4. **Unclear Reasoning**: Reasoning must be 10+ chars and specific
+5. **Crossing Boundaries Without Validation**: Validate at module edges
+6. **TODO Without Context**: Add phase/context to all TODOs
+
+## Autonomy Levels in Code
+
+### N0 Mode - Observe Only
+```python
+def _decide_n0(self, incident: Dict[str, Any]) -> Dict[str, Any]:
+    """Make decision in N0 mode (always NO_ACTION)."""
+    reasoning = self._generate_reasoning_n0(incident)
+    
+    return self._create_decision(
+        incident=incident,
+        decision_type="NO_ACTION",
+        reasoning=reasoning,
+        safety_classification="SAFE",
+    )
+```
+
+### N2 Mode - SAFE Autonomous Execution
+```python
+def _decide_n2(self, incident: Dict[str, Any]) -> Dict[str, Any]:
+    """Make decision in N2 mode (SAFE actions allowed)."""
+    action_type = self._determine_action_type(incident)
+    classification = self.policy_loader.classify_action(action_type)
+    
+    if classification == "RISKY":
+        return self._create_decision(..., decision_type="NO_ACTION", ...)
+    
+    # Check cooldown and circuit breaker
+    if not self.cooldown_tracker.check_cooldown(action_type, cooldown):
+        return self._create_decision(..., decision_type="NO_ACTION", ...)
+    
+    # Execute SAFE action
+    return decision
+```
+
+### N3 Mode - Human Authority
+```python
+def _decide_n3(self, incident: Dict[str, Any]) -> Dict[str, Any]:
+    """Make decision in N3 mode (SAFE auto-execute, RISKY request approval)."""
+    classification = self.policy_loader.classify_action(action_type)
+    
+    if classification == "RISKY":
+        decision["decision_type"] = "REQUEST_APPROVAL"
+        decision["requires_approval"] = True
+        self._emit_approval_request(decision, incident)
+        return decision
+    
+    # SAFE actions: check cooldown and circuit breaker (same as N2)
+```
+
+## Summary
+
+ORION coding conventions prioritize:
+1. **Safety** - Fail closed, explicit reasoning, validated inputs
+2. **Clarity** - Readable by humans and auditors
+3. **Auditability** - Complete logging, explicit approvals, versioned contracts
+4. **Modularity** - Clear boundaries, explicit contracts, no shared state
+5. **Testability** - All safety logic tested, mocked external dependencies
+
+Follow CLAUDE.md as authoritative guide. When conventions conflict with safety, safety wins.

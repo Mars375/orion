@@ -47,6 +47,17 @@ Recent decisions affecting current work:
 - Three-pillar safety: Conservative by default, Ask first, Dry-run by default
 - Autonomy levels: N0 (observe) → N1 (suggest) → N2 (safe actions) → N3 (with approvals)
 
+### Roadmap Evolution
+
+Phase insertions and modifications:
+
+- **Phase 4.1 inserted after Phase 4** (2026-01-16): TECHNICAL PIVOT: Bus Migration to Go
+  - **Reason**: URGENT - Must rewrite orion-bus from Python to Go before Phase 5 AI Council
+  - **Performance**: AI Council will saturate CPU with LLM inference. Bus needs high-concurrency event dispatching.
+  - **Memory**: Pi 5 has 16GB. LLMs are memory-intensive. Go minimizes bus footprint.
+  - **Safety**: Go's type system provides compile-time contract validation guarantees.
+  - **Impact**: Phase 5 AI Council now depends on completion of Phase 4.1
+
 ### Critical Gaps (from codebase mapping)
 
 - All policy files empty (policies/*.yaml) - SAFE/RISKY classifications undefined

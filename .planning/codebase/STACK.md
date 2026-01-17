@@ -1,79 +1,124 @@
 # Technology Stack
 
-**Analysis Date:** 2026-01-13
-
 ## Languages
 
-**Primary:**
-- Python - AI reasoning, SRE logic, decision systems (planned for brain, guardian, memory, api, commander, approval-telegram)
-- Go - Long-running services, reliability, performance (planned for bus, edge-agent, system agents)
+- **Python 3.12**: Core cognitive modules (Brain, Guardian, Memory, Commander, Approval Coordinator)
+- **YAML**: Policy configuration and cooldown settings
 
-**Secondary:**
-- JSON Schema - Language-agnostic contract definitions in `bus/contracts/`
+## Frameworks & Libraries
 
-## Runtime
+### Python Runtime Dependencies
+- `redis==5.0.1` - Redis client for event bus communication
+- `jsonschema==4.21.1` - JSON Schema validation for contracts
+- `pyyaml==6.0.1` - Policy file parsing
+- `psutil==5.9.8` - System resource monitoring
 
-**Environment:**
-- Python (version not specified) - For cognitive modules
-- Go (version not specified) - For reliability-critical services
-- Raspberry Pi 4 Model B - Edge devices (`edge/freenove_hexapod/`)
+### Python Testing Dependencies
+- `pytest==8.0.0` - Test framework
+- `pytest-cov==4.1.0` - Code coverage reporting
+- `pytest-mock==3.12.0` - Mocking utilities
+- `fakeredis==2.21.1` - In-memory Redis mock for testing
+- `pytest-asyncio==0.21.1` - Async test support
 
-**Package Manager:**
-- Not detected (no package.json, requirements.txt, go.mod, or Cargo.toml found)
-- Project is in early architectural phase without implementation
+## Infrastructure & Services
 
-## Frameworks
+- **Redis 7 (Alpine)** - Event bus backbone (Redis Streams)
+- **Prometheus (latest)** - Metrics collection (observe-only, no alerting)
+- **Grafana (latest)** - Metrics visualization
+- **Node Exporter (latest)** - System metrics exposure
+- **cAdvisor (latest)** - Container metrics
+- **Docker & Docker Compose** - Containerization and orchestration
 
-**Core:**
-- Not yet implemented - No framework dependencies detected
+### Media Stack (Optional)
+- **Jellyfin** - Media server
+- **Radarr** - Movie management
+- **Sonarr** - TV series management
+- **Prowlarr** - Indexer aggregator
+- **qBittorrent** - Torrent client
 
-**Testing:**
-- Test-alongside doctrine specified in `CLAUDE.md`
-- Framework TBD - Must support Python and Go with contract validation
+## Communication Protocols & Data Formats
 
-**Build/Dev:**
-- Docker (planned) - Empty docker-compose.yml files in `deploy/core/` and `deploy/hub/`
-- Git - Conventional commits with module-scoped branches
+- **Redis Streams** - Core event bus (no AMQP, no Kafka)
+- **MQTT** - Edge device telemetry (planned, not implemented)
+- **HTTP REST** - API exposure (Prometheus, Grafana, ORION services)
+- **JSON** - Message format throughout
+- **JSON Schema** - Contract definitions and validation
 
-## Key Dependencies
+## Configuration & Storage
 
-**Critical (Planned but not installed):**
-- Redis Streams - Core event bus for inter-module communication
-- MQTT broker - Edge telemetry and commands for robot devices
-- Telegram Bot API - Human approval workflow for risky actions
-- JSON Schema validator - Contract validation at module boundaries
+- **Environment Variables** (.env format) - Runtime configuration
+- **JSON Schema Files** - Versioned contracts for inter-module communication
+- **YAML Policy Files** - Safety classification and cooldown configuration
+- **JSONL Format** - Append-only audit trail (events, incidents, decisions)
+- **SQLite/File-based** - Memory store for audit trail
 
-**Infrastructure (Planned):**
-- Tailscale - Zero-trust networking, mandatory for all nodes
-- Prometheus - Metrics collection
-- Loki - Log aggregation
-- Supabase or similar - Database (implied but not specified)
+## Development Tools
 
-## Configuration
+### Testing Framework
+- `pytest` with markers: `unit`, `integration`, `contract`, `policy`, `slow`
+- Async test support via `pytest-asyncio`
+- Mock Redis via `fakeredis` for isolated testing
+- Test discovery patterns: `test_*.py` and `*_test.py`
 
-**Environment:**
-- `.env` files (gitignored) - Secrets management per `CLAUDE.md`
-- `.env.example` templates present but empty in `deploy/core/` and `deploy/hub/`
-- Secrets never committed, backed up encrypted per `docs/SECURITY.md`
+### Code Quality
+- Type hints throughout (Python 3.12 style)
+- Dataclass-based contracts
+- Comprehensive docstrings on public APIs
 
-**Build:**
-- Not yet configured
-- Docker Compose expected in `deploy/` directories (currently empty)
+### Build & Deployment
+- Docker Compose for orchestration
+- Volume binding to HDD storage (`/mnt/orion-data`)
+- Health checks on all services
+- Memory limits per container
 
-## Platform Requirements
+## Autonomy Levels
 
-**Development:**
-- Linux/macOS/Windows (WSL2 detected from system path)
-- Docker for containerized services
-- Git with conventional commit enforcement
+- **N0** - Observe only, no action
+- **N2** - Execute SAFE actions with rate limiting and circuit breakers
+- **N3** - Execute SAFE actions + REQUEST approval for RISKY actions
 
-**Production:**
-- Docker containers - orion-core and orion-hub nodes
-- Raspberry Pi 4 Model B - Edge devices (`edge/freenove_hexapod/`)
-- Tailscale VPN - Mandatory for node communication (`docs/SECURITY.md`)
-- Hardware: Freenove Hexapod Robot on Raspberry Pi
+## Core Modules & Their Tech Stack
 
----
+| Module | Language | Key Libraries |
+|--------|----------|---------------|
+| `orion-brain` | Python 3.12 | redis, jsonschema, pyyaml (policies) |
+| `orion-guardian` | Python 3.12 | redis, jsonschema |
+| `orion-commander` | Python 3.12 | redis, jsonschema, pyyaml (policies) |
+| `orion-memory` | Python 3.12 | jsonl (file-based) |
+| `orion-approval` | Python 3.12 | redis, jsonschema, pyyaml |
+| `orion-bus` (Python) | Python 3.12 | redis, jsonschema |
+| `orion-watcher` | Python 3.12 | psutil, redis |
 
-*Stack analysis: 2026-01-13*
-*Update after major dependency changes*
+## System Architecture Notes
+
+1. **Event-Driven**: Redis Streams as single event bus
+2. **Contract-First**: Strict JSON Schema validation at message boundaries
+3. **Fail-Closed**: Unknown actions treated as RISKY by default
+4. **Audit Trail**: All decisions and outcomes logged in JSONL format
+5. **Safety Guards**: Cooldown tracking, circuit breaker pattern
+6. **Rate Limiting**: Configurable via YAML policies
+7. **Approval System**: Time-limited, admin-only approval mechanism
+
+## Deployment Topology
+
+- **orion-core** (docker-compose): Redis only (containerized)
+- **ORION services**: Run on host as systemd services or manually
+- **Monitoring stack**: Prometheus, Grafana, Node Exporter, cAdvisor
+- **Media stack**: Optional services on hub node
+
+## Storage & Persistence
+
+- Redis AOF (Append-Only File) persistence enabled
+- HDD-only storage (no SD card writes permitted)
+- 30-day retention for Prometheus metrics
+- Immutable JSONL audit trail
+
+## Network Architecture
+
+- Localhost-only Redis and Prometheus
+- Docker bridge networks: `orion-core`, `orion-monitoring`, `orion-media`
+- MQTT for edge device communication (planned)
+
+## Notes
+
+This stack reflects ORION's philosophy: **conservative by default, explicit communication, safety before capability, and complete auditability**.
