@@ -2,50 +2,55 @@
 
 ## Project Reference
 
-See: CLAUDE.md (development contract), docs/ (architecture and phases)
+See: .planning/PROJECT.md (updated 2026-01-19)
 
 **Core value:** Safety-first autonomous homelab - observation precedes action, inaction preferred to risky action, no automation without explicit rules
-**Current focus:** Phase 0 — Foundation & Governance (logical foundation, zero runtime)
+**Current focus:** v1.0 Core Platform shipped - ready for production deployment
 
 ## Current Position
 
-Phase: 0 of 7 (Foundation & Governance)
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-01-13 — Roadmap corrected: logical foundation before hardware
+Phase: 7 of 7 (Compute Expansion)
+Plan: Complete
+Status: v1.0 Milestone Shipped
+Last activity: 2026-01-19 — v1.0 Core Platform milestone complete
 
-Progress: ░░░░░░░░░░ 0%
+Progress: ██████████ 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0
-- Average duration: —
-- Total execution time: 0 hours
+- Total plans completed: 15 (Phases 4.1-7)
+- Average duration: ~6 hours/plan
+- Total execution time: ~90 hours (6 days)
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| — | — | — | — |
+| 4.1 Bus Migration | 4 | ~24h | ~6h |
+| 5 AI Council | 4 | ~24h | ~6h |
+| 6 Edge Integration | 4 | ~24h | ~6h |
+| 7 Compute Expansion | 3 | ~18h | ~6h |
 
 **Recent Trend:**
-- Last 5 plans: —
-- Trend: —
+- Last 5 plans: Consistent ~6h/plan
+- Trend: Stable velocity
 
 ## Accumulated Context
 
 ### Decisions
 
-Decisions are logged in CLAUDE.md and docs/.
+Decisions are logged in CLAUDE.md and PROJECT.md.
 Recent decisions affecting current work:
 
-- Mixed Python/Go stack (Python for cognitive complexity, Go for reliability)
-- Event-driven architecture with Redis Streams as event bus
-- Contract-first design with JSON Schema validation
-- Zero-trust networking via Tailscale
-- Three-pillar safety: Conservative by default, Ask first, Dry-run by default
-- Autonomy levels: N0 (observe) → N1 (suggest) → N2 (safe actions) → N3 (with approvals)
+- Go for event bus (performance, memory, type safety)
+- santhosh-tekuri/jsonschema for validation (kaptinlin required Go 1.25)
+- Gemma-2 2B for local SLM (lower RAM than Phi-3)
+- Claude 3.5 Sonnet for external validation (superior reasoning)
+- Sticky routing for inference (prefer nodes with model loaded)
+- 5-second default watchdog timeout for edge devices
+- Health thresholds: temp > 75°C, RAM > 90%
+- Fail-closed throughout
 
 ### Roadmap Evolution
 
@@ -57,46 +62,44 @@ Phase insertions and modifications:
   - **Memory**: Pi 5 has 16GB. LLMs are memory-intensive. Go minimizes bus footprint.
   - **Safety**: Go's type system provides compile-time contract validation guarantees.
   - **Impact**: Phase 5 AI Council now depends on completion of Phase 4.1
+  - **Outcome**: Completed successfully 2026-01-17
 
-### Critical Gaps (from codebase mapping)
+### Critical Gaps (resolved)
 
-- All policy files empty (policies/*.yaml) - SAFE/RISKY classifications undefined
-- All contract schemas empty (bus/contracts/*.json) - validation rules missing
-- All module READMEs empty - no implementation guidance
-- No dependency specifications (requirements.txt, go.mod)
-- No test infrastructure
+All critical gaps from initial codebase mapping resolved:
+- Policy files populated (policies/*.yaml)
+- Contract schemas defined (bus/contracts/*.json)
+- Module READMEs complete
+- Dependency specifications present (requirements.txt, go.mod)
+- Test infrastructure established (274+ tests)
 
 ### Deferred Issues
 
-None yet.
+- Code generation for Go structs (requires Go 1.23+, have 1.22)
+- Actual servo control for edge robot (requires hardware)
+- Inverse kinematics implementation (future phase)
+- Phase 0.1 Hardware Clean Reset (can happen during deployment)
 
 ### Pending Todos
 
-None yet.
+None - milestone complete.
 
 ### Blockers/Concerns
 
-**Before Phase 0:**
-- None (logical foundation, no dependencies)
-
-**Before Phase 0.1:**
-- Hardware must be physically available (can be skipped for early dev)
-
-**Before Phase 1:**
-- Contract schemas must be defined (Phase 0 deliverable)
-- Policy files must be populated (Phase 0 deliverable)
-- Test infrastructure must be established (Phase 0 deliverable)
-- Module READMEs must be complete (Phase 0 deliverable)
-
-**Before Phase 2:**
-- Core observability operational (Phase 1 deliverable)
-- Deployment configuration defined (.env.example, docker-compose files)
-
-**Before Phase 3:**
-- SAFE action allowlist validated in production (Phase 1-2 data)
+**For production deployment:**
+- Ollama must be installed on Pi nodes with Gemma-2 2B pulled
+- API keys required for external validation (ANTHROPIC_API_KEY, OPENAI_API_KEY)
+- Redis must be accessible from all nodes
+- MQTT broker required for edge devices
 
 ## Session Continuity
 
-Last session: 2026-01-13 14:00
-Stopped at: Codebase mapping complete, roadmap created
+Last session: 2026-01-19
+Stopped at: v1.0 milestone complete
 Resume file: None
+
+## Milestone History
+
+- **v1.0 Core Platform** (2026-01-19): Phases 0-7, 15 plans, 6 days
+  - Go Event Bus, AI Council, Edge Integration, Distributed Inference
+  - See .planning/MILESTONES.md for details

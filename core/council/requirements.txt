@@ -1,0 +1,13 @@
+# ORION Council Dependencies
+#
+# Local SLM validation and resource monitoring
+
+# Ollama Python client for local model inference
+ollama==0.1.6
+
+# System monitoring (for memory/CPU checks)
+psutil==5.9.8
+
+# External API clients for cloud validation
+anthropic==0.18.1
+openai==1.12.0

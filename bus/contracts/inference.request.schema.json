@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orion.local/contracts/inference.request.schema.json",
+  "title": "InferenceRequest",
+  "description": "Request for LLM inference via ORION inference subsystem",
+  "type": "object",
+  "required": ["version", "request_id", "model", "messages", "timestamp", "source"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Schema version"
+    },
+    "request_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for request tracking"
+    },
+    "model": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Model name (e.g., 'gemma3:1b', 'llama3.2:3b')"
+    },
+    "messages": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Conversation messages",
+      "items": {
+        "type": "object",
+        "required": ["role", "content"],
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": ["user", "assistant", "system"],
+            "description": "Message role"
+          },
+          "content": {
+            "type": "string",
+            "description": "Message content"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Request timestamp in RFC3339 format"
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Originating module (e.g., 'orion-brain')"
+    },
+    "keep_alive_seconds": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 600,
+      "description": "Model residency time in seconds (default 10 minutes)"
+    },
+    "callback": {
+      "type": "string",
+      "description": "Redis stream name for async response delivery"
+    }
+  },
+  "additionalProperties": false
+}

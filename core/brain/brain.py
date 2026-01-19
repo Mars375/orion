@@ -4,18 +4,27 @@ ORION Brain - Decision making logic.
 Reasons about incidents and produces decisions.
 - N0 mode: Every decision MUST be NO_ACTION
 - N2 mode: SAFE actions may execute, RISKY actions result in NO_ACTION
+
+Optional Council validation layer:
+- When council is provided, decisions are validated before emission
+- Council can APPROVE (proceed) or BLOCK (change to NO_ACTION)
+- Council validation is fail-closed (errors = BLOCKED)
 """
 
+import asyncio
 import logging
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import TYPE_CHECKING, Dict, Any, Optional
 
 from bus.python.orion_bus import EventBus
 from .policy_loader import PolicyLoader
 from .cooldown_tracker import CooldownTracker
 from .circuit_breaker import CircuitBreaker
+
+if TYPE_CHECKING:
+    from core.council import ConsensusAggregator, CouncilValidator, ExternalValidator
 
 
 logger = logging.getLogger(__name__)
@@ -52,6 +61,9 @@ class Brain:
         policy_dir: Optional[Path] = None,
         source_name: str = "orion-brain",
         approval_timeout: int = 300,  # 5 minutes default
+        council: Optional["ConsensusAggregator"] = None,
+        council_validator: Optional["CouncilValidator"] = None,
+        external_validator: Optional["ExternalValidator"] = None,
     ):
         """
         Initialize brain.
@@ -62,6 +74,9 @@ class Brain:
             policy_dir: Directory containing policy files (required for N2/N3)
             source_name: Source identifier for decisions
             approval_timeout: Default approval timeout in seconds (N3 only)
+            council: Optional ConsensusAggregator for AI Council validation
+            council_validator: Optional CouncilValidator for local SLM validation
+            external_validator: Optional ExternalValidator for cloud API validation
         """
         if autonomy_level not in ("N0", "N2", "N3"):
             raise ValueError(f"Only N0, N2, and N3 modes supported, got: {autonomy_level}")
@@ -70,6 +85,16 @@ class Brain:
         self.autonomy_level = autonomy_level
         self.source_name = source_name
         self.approval_timeout = approval_timeout
+
+        # Optional Council validation layer
+        self.council = council
+        self.council_validator = council_validator
+        self.external_validator = external_validator
+
+        if council is not None:
+            logger.info("Council validation enabled")
+        else:
+            logger.info("Council validation disabled (council=None)")
 
         # N2 and N3 modes require policy enforcement
         if autonomy_level in ("N2", "N3"):
@@ -502,6 +527,104 @@ class Brain:
                 exc_info=True
             )
 
+    def _validate_with_council(
+        self,
+        decision: Dict[str, Any],
+        incident: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """
+        Validate decision with AI Council (optional layer).
+
+        If council is configured, validates the decision and may block it.
+        If council returns BLOCKED, changes decision to NO_ACTION.
+
+        Args:
+            decision: Decision to validate
+            incident: Original incident
+
+        Returns:
+            Decision (possibly modified to NO_ACTION if blocked)
+
+        Safety:
+            - Fail-closed: Any validation error results in BLOCKED
+            - Council cannot modify decision content, only approve/block
+        """
+        if self.council is None:
+            logger.debug("Council validation skipped (council=None)")
+            return decision
+
+        if self.council_validator is None or self.external_validator is None:
+            logger.warning(
+                "Council configured but validators missing, skipping validation"
+            )
+            return decision
+
+        # Build decision dict for Council validation
+        decision_for_council = {
+            "incident_type": incident.get("incident_type", "unknown"),
+            "severity": incident.get("severity", "unknown"),
+            "safety_classification": decision.get("safety_classification", "UNKNOWN"),
+            "decision_type": decision.get("decision_type", "unknown"),
+            "reasoning": decision.get("reasoning", ""),
+        }
+
+        logger.info(f"Validating decision {decision['decision_id']} with Council")
+
+        try:
+            # Run async validation in sync context
+            result, confidence, critique = asyncio.run(
+                self.council.validate_decision(
+                    decision_for_council,
+                    self.council_validator,
+                    self.external_validator,
+                )
+            )
+
+            logger.info(
+                f"Council validation result: {result} (confidence={confidence:.2f})"
+            )
+
+            if result == "BLOCKED":
+                # Council blocked the decision - change to NO_ACTION
+                logger.warning(
+                    f"Decision {decision['decision_id']} BLOCKED BY COUNCIL: {critique}"
+                )
+
+                # Modify decision to NO_ACTION
+                decision["decision_type"] = "NO_ACTION"
+                decision["reasoning"] = (
+                    f"BLOCKED BY COUNCIL: {critique}. "
+                    f"Original reasoning: {decision['reasoning']}"
+                )
+                # Remove proposed_action if present
+                decision.pop("proposed_action", None)
+
+            elif result == "ESCALATE_TO_ADMIN":
+                # Council wants admin review - log but proceed
+                logger.warning(
+                    f"Decision {decision['decision_id']} escalated to admin by Council"
+                )
+
+            else:  # APPROVED
+                logger.info(
+                    f"Decision {decision['decision_id']} APPROVED by Council"
+                )
+
+        except Exception as e:
+            # Fail-closed: validation error = BLOCKED
+            logger.error(
+                f"Council validation failed, blocking decision: {e}",
+                exc_info=True
+            )
+            decision["decision_type"] = "NO_ACTION"
+            decision["reasoning"] = (
+                f"BLOCKED BY COUNCIL: Validation error ({type(e).__name__}). "
+                f"Original reasoning: {decision['reasoning']}"
+            )
+            decision.pop("proposed_action", None)
+
+        return decision
+
     def handle_incident(self, incident: Dict[str, Any]) -> None:
         """
         Handle incoming incident.
@@ -516,6 +639,9 @@ class Brain:
 
         # Make decision
         decision = self.decide(incident)
+
+        # Validate with Council (if configured)
+        decision = self._validate_with_council(decision, incident)
 
         # Publish decision to bus
         try:

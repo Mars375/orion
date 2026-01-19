@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orion.internal/schemas/validation/v1.schema.json",
+  "title": "ORION Council Validation",
+  "description": "Validation result from AI Council for a Brain decision. Council validates decisions but never modifies or proposes alternatives.",
+  "type": "object",
+  "required": ["version", "validation_id", "decision_id", "result", "confidence", "critique", "validators_used", "timestamp", "source"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Schema version for backward compatibility"
+    },
+    "validation_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this validation result"
+    },
+    "decision_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "ID of the decision that was validated"
+    },
+    "result": {
+      "type": "string",
+      "enum": ["APPROVED", "BLOCKED"],
+      "description": "Validation result: APPROVED allows decision to proceed, BLOCKED changes decision to NO_ACTION"
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "Confidence-weighted score from all validators (0.0 to 1.0)"
+    },
+    "critique": {
+      "type": "string",
+      "description": "Combined critique from all validators explaining the validation result"
+    },
+    "validators_used": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["local", "claude", "openai"]
+      },
+      "description": "List of validators that contributed to this result"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when validation was completed"
+    },
+    "source": {
+      "type": "string",
+      "const": "orion-council",
+      "description": "Must be orion-council (only council emits validations)"
+    },
+    "escalated_to_admin": {
+      "type": "boolean",
+      "description": "Whether this validation was escalated to admin for review"
+    },
+    "safety_veto_triggered": {
+      "type": "boolean",
+      "description": "Whether safety veto was triggered by a high-confidence concern"
+    }
+  }
+}

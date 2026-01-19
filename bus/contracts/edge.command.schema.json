@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orion.internal/schemas/edge/command/v1.schema.json",
+  "title": "ORION Edge Command",
+  "description": "Command sent from orion-brain to orion-edge devices. Commands are instructions that edge devices execute.",
+  "type": "object",
+  "required": ["version", "command_id", "timestamp", "source", "command_type", "device_id"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Schema version for backward compatibility"
+    },
+    "command_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this command"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when command was issued"
+    },
+    "source": {
+      "type": "string",
+      "pattern": "^orion-[a-z-]+$",
+      "description": "ORION module that issued this command (e.g., orion-brain)"
+    },
+    "command_type": {
+      "type": "string",
+      "enum": ["MOVE", "STOP", "CALIBRATE", "STATUS"],
+      "description": "Type of command to execute"
+    },
+    "device_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$",
+      "description": "Target edge device identifier (e.g., hexapod-1)"
+    },
+    "parameters": {
+      "type": "object",
+      "description": "Command-specific parameters. Structure varies by command_type.",
+      "oneOf": [
+        {
+          "title": "MOVE parameters",
+          "type": "object",
+          "required": ["direction"],
+          "additionalProperties": false,
+          "properties": {
+            "direction": {
+              "type": "string",
+              "enum": ["forward", "backward", "left", "right"],
+              "description": "Direction of movement"
+            },
+            "speed": {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0,
+              "default": 0.5,
+              "description": "Movement speed as fraction (0.0-1.0)"
+            },
+            "duration_ms": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 30000,
+              "description": "Duration of movement in milliseconds"
+            }
+          }
+        },
+        {
+          "title": "STOP parameters",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "reason": {
+              "type": "string",
+              "maxLength": 255,
+              "description": "Optional reason for stop command"
+            }
+          }
+        },
+        {
+          "title": "CALIBRATE parameters",
+          "type": "object",
+          "required": ["calibration_type"],
+          "additionalProperties": false,
+          "properties": {
+            "calibration_type": {
+              "type": "string",
+              "enum": ["servos", "imu", "full"],
+              "description": "Type of calibration to perform"
+            }
+          }
+        },
+        {
+          "title": "STATUS parameters (empty)",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {}
+        }
+      ]
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["NORMAL", "HIGH", "EMERGENCY"],
+      "default": "NORMAL",
+      "description": "Command priority level. EMERGENCY bypasses queuing."
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Optional expiration time. Command is discarded if not executed by this time."
+    }
+  }
+}

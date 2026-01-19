@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orion.local/contracts/inference.response.schema.json",
+  "title": "InferenceResponse",
+  "description": "Response from LLM inference via ORION inference subsystem",
+  "type": "object",
+  "required": ["version", "request_id", "model", "timestamp", "source"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Schema version"
+    },
+    "request_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Request ID from the original InferenceRequest"
+    },
+    "model": {
+      "type": "string",
+      "description": "Model that processed the request"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Response timestamp in RFC3339 format"
+    },
+    "source": {
+      "type": "string",
+      "description": "Responding worker (e.g., 'orion-inference-worker-pi8g')"
+    },
+    "response": {
+      "type": "string",
+      "description": "Generated text content"
+    },
+    "prompt_tokens": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of input tokens processed"
+    },
+    "completion_tokens": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of output tokens generated"
+    },
+    "load_duration_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Model load time in milliseconds (0 if model was already resident)"
+    },
+    "total_duration_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total inference time in milliseconds"
+    },
+    "error": {
+      "type": "string",
+      "description": "Error message if inference failed (empty on success)"
+    }
+  },
+  "additionalProperties": false
+}

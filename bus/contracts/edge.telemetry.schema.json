@@ -1,0 +1,158 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orion.internal/schemas/edge/telemetry/v1.schema.json",
+  "title": "ORION Edge Telemetry",
+  "description": "Telemetry data sent from orion-edge devices to orion-brain. Telemetry is observational data about device state.",
+  "type": "object",
+  "required": ["version", "telemetry_id", "timestamp", "source", "device_id", "telemetry_type", "value"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Schema version for backward compatibility"
+    },
+    "telemetry_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this telemetry message"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when telemetry was captured"
+    },
+    "source": {
+      "type": "string",
+      "pattern": "^orion-edge-[a-z0-9-]+$",
+      "description": "ORION edge module that emitted this telemetry (e.g., orion-edge-hexapod-1)"
+    },
+    "device_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$",
+      "description": "Edge device identifier (e.g., hexapod-1)"
+    },
+    "telemetry_type": {
+      "type": "string",
+      "enum": ["POSITION", "BATTERY", "TEMPERATURE", "SERVO_STATUS", "NETWORK"],
+      "description": "Type of telemetry data"
+    },
+    "value": {
+      "type": "object",
+      "description": "Telemetry-specific data. Structure varies by telemetry_type.",
+      "oneOf": [
+        {
+          "title": "POSITION value",
+          "type": "object",
+          "required": ["x", "y", "z", "heading"],
+          "additionalProperties": false,
+          "properties": {
+            "x": {
+              "type": "number",
+              "description": "X coordinate in local reference frame (meters)"
+            },
+            "y": {
+              "type": "number",
+              "description": "Y coordinate in local reference frame (meters)"
+            },
+            "z": {
+              "type": "number",
+              "description": "Z coordinate (height) in local reference frame (meters)"
+            },
+            "heading": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 360,
+              "description": "Heading in degrees (0-360, 0=North)"
+            }
+          }
+        },
+        {
+          "title": "BATTERY value",
+          "type": "object",
+          "required": ["level", "voltage", "charging"],
+          "additionalProperties": false,
+          "properties": {
+            "level": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100,
+              "description": "Battery level as percentage (0-100)"
+            },
+            "voltage": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Battery voltage in volts"
+            },
+            "charging": {
+              "type": "boolean",
+              "description": "Whether battery is currently charging"
+            }
+          }
+        },
+        {
+          "title": "TEMPERATURE value",
+          "type": "object",
+          "required": ["cpu_temp", "motor_temp"],
+          "additionalProperties": false,
+          "properties": {
+            "cpu_temp": {
+              "type": "number",
+              "description": "CPU temperature in Celsius"
+            },
+            "motor_temp": {
+              "type": "number",
+              "description": "Motor/servo temperature in Celsius"
+            }
+          }
+        },
+        {
+          "title": "SERVO_STATUS value",
+          "type": "object",
+          "required": ["servo_id", "angle", "load"],
+          "additionalProperties": false,
+          "properties": {
+            "servo_id": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 17,
+              "description": "Servo identifier (0-17 for hexapod)"
+            },
+            "angle": {
+              "type": "number",
+              "description": "Current servo angle in degrees"
+            },
+            "load": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Servo load as fraction (0.0-1.0)"
+            }
+          }
+        },
+        {
+          "title": "NETWORK value",
+          "type": "object",
+          "required": ["connected", "latency_ms", "last_heartbeat"],
+          "additionalProperties": false,
+          "properties": {
+            "connected": {
+              "type": "boolean",
+              "description": "Whether network connection to brain is active"
+            },
+            "latency_ms": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Network latency to brain in milliseconds"
+            },
+            "last_heartbeat": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Timestamp of last successful heartbeat exchange"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

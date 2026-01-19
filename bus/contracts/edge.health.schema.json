@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orion.internal/schemas/edge/health/v1.schema.json",
+  "title": "ORION Edge Health",
+  "description": "Health and heartbeat messages from orion-edge devices. Critical for Dead Man's Switch safety monitoring.",
+  "type": "object",
+  "required": ["version", "health_id", "timestamp", "source", "device_id", "state", "uptime_seconds", "connection_status", "safety_state"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Schema version for backward compatibility"
+    },
+    "health_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this health message"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when health check was performed"
+    },
+    "source": {
+      "type": "string",
+      "pattern": "^orion-edge-[a-z0-9-]+$",
+      "description": "ORION edge module that emitted this health check (e.g., orion-edge-hexapod-1)"
+    },
+    "device_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$",
+      "description": "Edge device identifier (e.g., hexapod-1)"
+    },
+    "state": {
+      "type": "string",
+      "enum": ["RUNNING", "IDLE", "SAFE_MODE", "ERROR", "OFFLINE"],
+      "description": "Current operational state of the edge device"
+    },
+    "uptime_seconds": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Device uptime in seconds since last boot"
+    },
+    "last_command_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "UUID of the last command executed (optional, may be null if no commands received)"
+    },
+    "connection_status": {
+      "type": "object",
+      "required": ["mqtt_connected", "redis_connected", "last_brain_contact"],
+      "additionalProperties": false,
+      "description": "Status of connections to core infrastructure",
+      "properties": {
+        "mqtt_connected": {
+          "type": "boolean",
+          "description": "Whether MQTT broker connection is active"
+        },
+        "redis_connected": {
+          "type": "boolean",
+          "description": "Whether Redis connection is active"
+        },
+        "last_brain_contact": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of last successful communication with orion-brain"
+        }
+      }
+    },
+    "safety_state": {
+      "type": "object",
+      "required": ["dead_man_switch_active", "watchdog_remaining_ms", "in_safe_position"],
+      "additionalProperties": false,
+      "description": "Safety system status for Dead Man's Switch monitoring",
+      "properties": {
+        "dead_man_switch_active": {
+          "type": "boolean",
+          "description": "Whether Dead Man's Switch is currently active (true = safety engaged)"
+        },
+        "watchdog_remaining_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Milliseconds remaining before watchdog triggers safety mode"
+        },
+        "in_safe_position": {
+          "type": "boolean",
+          "description": "Whether device is in safe 'Sit & Freeze' position"
+        }
+      }
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "List of current error conditions (empty array if no errors)"
+    }
+  }
+}
