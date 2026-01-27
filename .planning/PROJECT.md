@@ -4,7 +4,7 @@
 
 ## What This Is
 
-Orion SRE est un écosystème numérique complet qui vit chez toi et interagit avec ta vraie vie, pas juste un projet infra sur GitHub. C'est un homelab opérel comme une production SRE : métriques, logs, alertes, auto-remédiation, workflows de maintenance, et un agent LLM local "Orion" qui peut analyser les événements de ton système et te proposer des actions.
+Orion SRE est un écosystème numérique complet qui vit chez toi et interagit avec ta vraie vie, pas juste un projet infra sur GitHub. C'est un homelab opérel comme une production SRE : métriques, logs, alertes, auto-remédiation, workflows de maintenance, et un agent LLM local "Orion" qui analyse métriques, logs et événements, résume les incidents et propose des actions concrètes.
 
 Au centre, deux Raspberry Pi 5 et un HDD de 4 To qui hébergent ton homelab : stockage de tes fichiers perso, photos, backups, bibliothèques médias type Netflix maison (Jellyfin + Arr stack), apps du quotidien (recettes, gestion des courses, e‑books, audiobooks, etc.). Tout ça est monitoré et sécurisé comme une prod SRE, avec un agent LLM local branché sur ces données et sur ta domotique.
 
@@ -201,8 +201,9 @@ Orion devient un hub central pour tes usages réels : il gère la sauvegarde de 
 
 **Services :**
 - **Monitoring contrôle** : Prometheus + Alertmanager (scrape cortex + synapse)
-- **Logs** : Loki (centralisé depuis les 2 Pi via Promtail)
+- **Logs** : Loki (stockage logs sur HDD 4 To) + Promtail local
 - **Backups** : Restic/Borg clients (offsite + local)
+- **Agents logs** : Promtail (synapse) + éventuellement Uptime Kuma
 - **Jobs récurrents** : docker-volume-backup, maintenance scripts
 - **Services légers mais critiques** : Pi-hole/DNS local, Uptime Kuma
 - **Stockage** : Import NFS depuis cortex (nécessaire)
